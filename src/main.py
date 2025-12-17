@@ -120,13 +120,13 @@ class Ship:
 
     def update(self, keys):
         """Update ship position based on keyboard input."""
-        if keys[pygame.K_w] and self.y > 0:
+        if (keys[pygame.K_w] or keys[pygame.K_UP]) and self.y > 0:
             self.y -= self.speed
-        if keys[pygame.K_s] and self.y < HEIGHT - self.height:
+        if (keys[pygame.K_s] or keys[pygame.K_DOWN]) and self.y < HEIGHT - self.height:
             self.y += self.speed
-        if keys[pygame.K_a] and self.x > 0:
+        if (keys[pygame.K_a] or keys[pygame.K_LEFT]) and self.x > 0:
             self.x -= self.speed
-        if keys[pygame.K_d] and self.x < WIDTH - self.width:
+        if (keys[pygame.K_d] or keys[pygame.K_RIGHT]) and self.x < WIDTH - self.width:
             self.x += self.speed
 
         # Update timers
@@ -217,16 +217,28 @@ class Ship:
 class Asteroid:
     """Asteroid obstacle."""
 
-    def __init__(self, x, y, radius, speed_multiplier=1.0):
+    def __init__(self, x, y, radius, speed_multiplier=1.0, velocity_x=None, velocity_y=None):
         self.x = x
         self.y = y
         self.radius = radius
-        self.speed = ASTEROID_BASE_SPEED * speed_multiplier
+        self.base_speed = ASTEROID_BASE_SPEED * speed_multiplier
+        # Allow custom velocity for child asteroids
+        self.velocity_x = velocity_x if velocity_x is not None else -self.base_speed
+        self.velocity_y = velocity_y if velocity_y is not None else 0
         self.points = max(1, int(radius / 10))  # Larger asteroids worth more points
 
+        # Determine size category for breaking mechanics
+        if radius >= 40:
+            self.size_category = 'large'
+        elif radius >= 25:
+            self.size_category = 'medium'
+        else:
+            self.size_category = 'small'
+
     def update(self):
-        """Move asteroid to the left."""
-        self.x -= self.speed
+        """Move asteroid with custom velocity."""
+        self.x += self.velocity_x
+        self.y += self.velocity_y
 
     def draw(self, screen):
         """Draw the asteroid with details."""
@@ -265,6 +277,45 @@ class Asteroid:
         distance_squared = (ship_center[0] - self.x) ** 2 + (ship_center[1] - self.y) ** 2
         collision_radius = self.radius + ship.width // 2
         return distance_squared < collision_radius ** 2
+
+    def can_break(self):
+        """Check if asteroid can break into smaller pieces."""
+        return self.size_category in ['large', 'medium']
+
+    def create_children(self, difficulty_multiplier=1.0):
+        """Create smaller asteroids when this one breaks."""
+        children = []
+        if not self.can_break():
+            return children
+
+        # Determine number of children and their size
+        if self.size_category == 'large':
+            num_children = 3
+            child_radius = random.randint(20, 30)
+        else:  # medium
+            num_children = 2
+            child_radius = random.randint(15, 22)
+
+        # Create children with spread velocities
+        for i in range(num_children):
+            # Add some randomness to velocity for spread effect
+            angle = random.uniform(-45, 45)  # degrees
+            speed = self.base_speed * random.uniform(0.8, 1.3)
+
+            # Calculate velocity components
+            vx = speed * math.cos(math.radians(angle + 180))  # 180 for leftward
+            vy = speed * math.sin(math.radians(angle))
+
+            # Slight position offset so they don't stack
+            offset_angle = (360 / num_children) * i
+            offset_dist = self.radius * 0.5
+            child_x = self.x + math.cos(math.radians(offset_angle)) * offset_dist
+            child_y = self.y + math.sin(math.radians(offset_angle)) * offset_dist
+
+            child = Asteroid(child_x, child_y, child_radius, difficulty_multiplier, vx, vy)
+            children.append(child)
+
+        return children
 
 
 class Laser:
@@ -720,6 +771,8 @@ class Game:
         lasers_to_remove = []
         asteroids_to_remove = []
 
+        asteroids_to_add = []  # For child asteroids
+
         for i, laser in enumerate(self.lasers):
             for j, asteroid in enumerate(self.asteroids):
                 if laser.collides_with_asteroid(asteroid):
@@ -736,6 +789,10 @@ class Game:
                         multiplier_index = min(self.combo - 1, len(COMBO_MULTIPLIERS) - 1)
                         multiplier = COMBO_MULTIPLIERS[multiplier_index]
                         self.score += asteroid.points * multiplier
+                        # Break asteroid into smaller pieces if applicable
+                        if asteroid.can_break():
+                            children = asteroid.create_children(self.difficulty_level)
+                            asteroids_to_add.extend(children)
                         # Spawn power-up chance
                         self.spawn_powerup(asteroid.x, asteroid.y)
                         self.play_sound('explosion')
@@ -743,6 +800,9 @@ class Game:
         # Remove collided objects
         self.lasers = [laser for i, laser in enumerate(self.lasers) if i not in lasers_to_remove]
         self.asteroids = [asteroid for i, asteroid in enumerate(self.asteroids) if i not in asteroids_to_remove]
+
+        # Add child asteroids from breaking
+        self.asteroids.extend(asteroids_to_add)
 
         # Ship-asteroid collisions
         for asteroid in self.asteroids:
@@ -753,9 +813,16 @@ class Game:
                     # Screen shake on hit
                     self.screen_shake = SCREEN_SHAKE_DURATION
                     self.play_sound('hit')
+                    # Create explosion
+                    self.explosions.append(Explosion(asteroid.x, asteroid.y))
+                    # Break asteroid if applicable (even on ship collision)
+                    if asteroid.can_break():
+                        children = asteroid.create_children(self.difficulty_level)
+                        # Add children after removing parent
+                        for child in children:
+                            self.asteroids.append(child)
                     # Remove the asteroid
                     self.asteroids.remove(asteroid)
-                    self.explosions.append(Explosion(asteroid.x, asteroid.y))
                     # Reset combo
                     self.combo = 0
                     self.combo_timer = 0
@@ -856,7 +923,7 @@ class Game:
             screen.blit(shield_text, (20, y_offset))
 
         # Draw controls
-        controls_text = self.small_font.render("WASD: Move | SPACE: Shoot | P: Pause", True, TEXT_COLOR)
+        controls_text = self.small_font.render("WASD/Arrows: Move | SPACE: Shoot | P: Pause", True, TEXT_COLOR)
         screen.blit(controls_text, (20, HEIGHT - 40))
 
     def draw_pause(self, screen):
