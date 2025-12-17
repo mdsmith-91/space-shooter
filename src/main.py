@@ -720,8 +720,9 @@ class Game:
         self.shake_offset_x = 0
         self.shake_offset_y = 0
 
-        # Sound effects (would need actual sound files)
+        # Sound effects
         self.sounds_enabled = False
+        self.sounds = {}
         self.init_sounds()
 
         # Initialize game
@@ -731,22 +732,48 @@ class Game:
 
     def init_sounds(self):
         """Initialize sound effects (requires sound files)."""
-        try:
-            # Placeholder - would need actual .wav or .ogg files
-            # self.laser_sound = pygame.mixer.Sound("sounds/laser.wav")
-            # self.explosion_sound = pygame.mixer.Sound("sounds/explosion.wav")
-            # self.hit_sound = pygame.mixer.Sound("sounds/hit.wav")
-            # self.powerup_sound = pygame.mixer.Sound("sounds/powerup.wav")
-            # pygame.mixer.music.load("sounds/background.ogg")
-            # pygame.mixer.music.play(-1)
-            pass
-        except:
-            self.sounds_enabled = False
+        sound_files = {
+            'laser': 'sounds/laser.wav',
+            'explosion': 'sounds/explosion.wav',
+            'explosion_big': 'sounds/explosion_big.wav',
+            'hit': 'sounds/hit.wav',
+            'powerup': 'sounds/powerup.wav',
+            'shield': 'sounds/shield.wav',
+            'boss_warning': 'sounds/boss_warning.wav',
+        }
+
+        loaded_count = 0
+        for sound_name, sound_path in sound_files.items():
+            try:
+                self.sounds[sound_name] = pygame.mixer.Sound(sound_path)
+                loaded_count += 1
+            except:
+                # Sound file not found, skip it
+                self.sounds[sound_name] = None
+
+        # Enable sounds if at least some loaded
+        if loaded_count > 0:
+            self.sounds_enabled = True
+            print(f"✅ Loaded {loaded_count}/{len(sound_files)} sound effects")
+
+            # Try to load background music
+            try:
+                pygame.mixer.music.load("sounds/music.ogg")
+                pygame.mixer.music.set_volume(0.3)  # 30% volume for background
+                pygame.mixer.music.play(-1)  # Loop forever
+                print("✅ Background music loaded")
+            except:
+                pass  # Music file not found, continue without it
+        else:
+            print("ℹ️  No sound files found. Game will run silently.")
+            print("ℹ️  See SOUNDS_SETUP.md for instructions to add sounds.")
 
     def play_sound(self, sound_name):
         """Play a sound effect."""
-        if self.sounds_enabled:
-            pass  # Would play actual sounds here
+        if self.sounds_enabled and sound_name in self.sounds:
+            sound = self.sounds[sound_name]
+            if sound:
+                sound.play()
 
     def load_high_score(self):
         """Load high score from file."""
@@ -995,6 +1022,9 @@ class Game:
         # Update boss warning
         if self.boss_warning:
             self.boss_warning_timer -= 1
+            # Play warning sound at start of warning
+            if self.boss_warning_timer == BOSS_WARNING_DURATION - 1:
+                self.play_sound('boss_warning')
             if self.boss_warning_timer <= 0:
                 self.boss_warning = False
                 # Spawn the boss
@@ -1198,6 +1228,8 @@ class Game:
                             self.powerups.append(PowerUp(self.boss.x, self.boss.y, powerup_type))
                             # Huge screen shake
                             self.screen_shake = SCREEN_SHAKE_DURATION * 3
+                            # Play big explosion sound
+                            self.play_sound('explosion_big')
                             self.boss = None
                         else:
                             # Just hit, create impact
@@ -1211,12 +1243,18 @@ class Game:
         # Ship-asteroid collisions
         for asteroid in self.asteroids:
             if asteroid.collides_with_ship(self.ship):
+                # Check if shield was active before damage
+                had_shield = self.ship.has_shield
                 if self.ship.take_damage():
                     self.game_over = True
                 else:
                     # Screen shake on hit
                     self.screen_shake = SCREEN_SHAKE_DURATION
-                    self.play_sound('hit')
+                    # Play appropriate sound (shield break or hit)
+                    if had_shield:
+                        self.play_sound('shield')
+                    else:
+                        self.play_sound('hit')
                     # Create explosion and debris particles
                     self.explosions.append(Explosion(asteroid.x, asteroid.y))
                     self.create_debris_particles(asteroid.x, asteroid.y, count=int(asteroid.radius / 2))
@@ -1235,12 +1273,17 @@ class Game:
 
         # Ship-boss collisions
         if self.boss and self.boss.collides_with_ship(self.ship):
+            had_shield = self.ship.has_shield
             if self.ship.take_damage():
                 self.game_over = True
             else:
                 # Screen shake on hit
                 self.screen_shake = SCREEN_SHAKE_DURATION * 2
-                self.play_sound('hit')
+                # Play appropriate sound (shield break or hit)
+                if had_shield:
+                    self.play_sound('shield')
+                else:
+                    self.play_sound('hit')
                 # Reset combo
                 self.combo = 0
                 self.combo_timer = 0
