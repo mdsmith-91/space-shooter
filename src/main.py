@@ -34,10 +34,23 @@ POWERUP_COLORS = {
     'shield': (100, 255, 100),
     'rapid_fire': (255, 255, 100),
     'spread_shot': (255, 150, 255),
+    'double_damage': (255, 100, 200),
+    'magnet': (200, 100, 255),
+    'time_slow': (100, 200, 255),
+    'nuke': (255, 50, 50),
 }
 SHIELD_COLOR = (100, 255, 100)
 HEALTH_COLOR = (255, 100, 100)
 COMBO_COLOR = (255, 255, 100)
+
+# Particle colors
+PARTICLE_COLORS = {
+    'laser': [(0, 255, 255), (100, 255, 255), (150, 255, 255)],
+    'debris': [(150, 150, 150), (180, 180, 180), (120, 120, 120)],
+    'engine': [(255, 150, 50), (255, 200, 100), (255, 100, 20)],
+    'powerup': [(255, 255, 100), (255, 200, 255), (200, 255, 255)],
+    'impact': [(255, 255, 255), (255, 200, 100), (255, 150, 50)],
+}
 
 # Ship settings
 SHIP_WIDTH = 40
@@ -88,6 +101,12 @@ EXPLOSION_INITIAL_SIZE = 10
 # Combo settings
 COMBO_TIMEOUT = 120  # 2 seconds to maintain combo
 COMBO_MULTIPLIERS = [1, 2, 3, 5, 8]  # Score multipliers for combo levels
+
+# Particle settings
+PARTICLE_LIFETIME = 30  # frames
+PARTICLE_MIN_SIZE = 1
+PARTICLE_MAX_SIZE = 4
+PARTICLE_FADE_RATE = 8  # alpha decrease per frame
 
 # Screen shake settings
 SCREEN_SHAKE_DURATION = 10
@@ -235,36 +254,62 @@ class Asteroid:
         else:
             self.size_category = 'small'
 
+        # Rotation
+        self.angle = random.uniform(0, 360)
+        self.rotation_speed = random.uniform(-2, 2)  # degrees per frame
+
     def update(self):
         """Move asteroid with custom velocity."""
         self.x += self.velocity_x
         self.y += self.velocity_y
+        self.angle += self.rotation_speed
+        if self.angle >= 360:
+            self.angle -= 360
+        elif self.angle < 0:
+            self.angle += 360
+
+    def _rotate_point(self, offset_x, offset_y):
+        """Rotate a point around the asteroid center based on current angle."""
+        angle_rad = math.radians(self.angle)
+        rotated_x = offset_x * math.cos(angle_rad) - offset_y * math.sin(angle_rad)
+        rotated_y = offset_x * math.sin(angle_rad) + offset_y * math.cos(angle_rad)
+        return self.x + rotated_x, self.y + rotated_y
 
     def draw(self, screen):
-        """Draw the asteroid with details."""
+        """Draw the asteroid with rotating details."""
         # Main asteroid body
         pygame.draw.circle(screen, ASTEROID_COLORS[0], (int(self.x), int(self.y)), self.radius)
 
-        # Add details to make it look realistic
+        # Add rotated details to make it look realistic
+        detail1_x, detail1_y = self._rotate_point(-self.radius // 3, -self.radius // 4)
         pygame.draw.circle(screen, ASTEROID_COLORS[1],
-                          (int(self.x - self.radius // 3), int(self.y - self.radius // 4)),
+                          (int(detail1_x), int(detail1_y)),
                           self.radius // 2)
+
+        detail2_x, detail2_y = self._rotate_point(self.radius // 2, self.radius // 3)
         pygame.draw.circle(screen, ASTEROID_COLORS[2],
-                          (int(self.x + self.radius // 2), int(self.y + self.radius // 3)),
+                          (int(detail2_x), int(detail2_y)),
                           self.radius // 3)
+
+        detail3_x, detail3_y = self._rotate_point(-self.radius // 2, self.radius // 2)
         pygame.draw.circle(screen, ASTEROID_COLORS[1],
-                          (int(self.x - self.radius // 2), int(self.y + self.radius // 2)),
+                          (int(detail3_x), int(detail3_y)),
                           self.radius // 4)
 
-        # Add craters
+        # Add rotated craters
+        crater1_x, crater1_y = self._rotate_point(-self.radius // 4, 0)
         pygame.draw.circle(screen, ASTEROID_COLORS[2],
-                          (int(self.x - self.radius // 4), int(self.y)),
+                          (int(crater1_x), int(crater1_y)),
                           self.radius // 6)
+
+        crater2_x, crater2_y = self._rotate_point(self.radius // 3, -self.radius // 3)
         pygame.draw.circle(screen, ASTEROID_COLORS[2],
-                          (int(self.x + self.radius // 3), int(self.y - self.radius // 3)),
+                          (int(crater2_x), int(crater2_y)),
                           self.radius // 8)
+
+        crater3_x, crater3_y = self._rotate_point(-self.radius // 2, self.radius // 4)
         pygame.draw.circle(screen, ASTEROID_COLORS[2],
-                          (int(self.x - self.radius // 2), int(self.y + self.radius // 4)),
+                          (int(crater3_x), int(crater3_y)),
                           self.radius // 5)
 
     def is_off_screen(self):
@@ -455,6 +500,41 @@ class Star:
         pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.size)
 
 
+class Particle:
+    """Visual particle effect."""
+
+    def __init__(self, x, y, color, velocity_x=0, velocity_y=0, size=None, lifetime=None):
+        self.x = x
+        self.y = y
+        self.color = color
+        self.vx = velocity_x
+        self.vy = velocity_y
+        self.size = size if size else random.randint(PARTICLE_MIN_SIZE, PARTICLE_MAX_SIZE)
+        self.lifetime = lifetime if lifetime else PARTICLE_LIFETIME
+        self.max_lifetime = self.lifetime
+        self.alpha = 255
+
+    def update(self):
+        """Update particle position and fade."""
+        self.x += self.vx
+        self.y += self.vy
+        self.lifetime -= 1
+        # Fade out over lifetime
+        self.alpha = int(255 * (self.lifetime / self.max_lifetime))
+
+    def draw(self, screen):
+        """Draw particle with transparency."""
+        if self.alpha > 0:
+            s = pygame.Surface((self.size * 2, self.size * 2), pygame.SRCALPHA)
+            color_with_alpha = (*self.color[:3], self.alpha)
+            pygame.draw.circle(s, color_with_alpha, (self.size, self.size), self.size)
+            screen.blit(s, (int(self.x - self.size), int(self.y - self.size)))
+
+    def is_dead(self):
+        """Check if particle should be removed."""
+        return self.lifetime <= 0
+
+
 class Game:
     """Main game controller."""
 
@@ -484,6 +564,7 @@ class Game:
         self.explosions = []
         self.stars = []
         self.powerups = []
+        self.particles = []
 
         # Timers and counters
         self.laser_cooldown = 0
@@ -500,6 +581,12 @@ class Game:
         self.rapid_fire_timer = 0
         self.spread_shot_active = False
         self.spread_shot_timer = 0
+        self.double_damage_active = False
+        self.double_damage_timer = 0
+        self.magnet_active = False
+        self.magnet_timer = 0
+        self.time_slow_active = False
+        self.time_slow_timer = 0
 
         # Screen shake
         self.screen_shake = 0
@@ -586,6 +673,7 @@ class Game:
         self.lasers = []
         self.explosions = []
         self.powerups = []
+        self.particles = []
         self.score = 0
         self.game_over = False
         self.paused = False
@@ -601,6 +689,12 @@ class Game:
         self.rapid_fire_timer = 0
         self.spread_shot_active = False
         self.spread_shot_timer = 0
+        self.double_damage_active = False
+        self.double_damage_timer = 0
+        self.magnet_active = False
+        self.magnet_timer = 0
+        self.time_slow_active = False
+        self.time_slow_timer = 0
         self.screen_shake = 0
         self.create_initial_asteroids()
 
@@ -661,7 +755,10 @@ class Game:
     def spawn_powerup(self, x, y):
         """Spawn a random power-up."""
         if random.random() < POWERUP_SPAWN_CHANCE:
-            powerup_type = random.choice(['shield', 'rapid_fire', 'spread_shot'])
+            powerup_types = ['shield', 'rapid_fire', 'spread_shot', 'double_damage', 'magnet', 'time_slow', 'nuke']
+            # Weight the power-ups (nuke is rarer)
+            weights = [1.5, 1.5, 1.5, 1.2, 1.2, 1.0, 0.3]
+            powerup_type = random.choices(powerup_types, weights=weights)[0]
             self.powerups.append(PowerUp(x, y, powerup_type))
 
     def activate_powerup(self, powerup_type):
@@ -675,7 +772,71 @@ class Game:
         elif powerup_type == 'spread_shot':
             self.spread_shot_active = True
             self.spread_shot_timer = POWERUP_DURATION
+        elif powerup_type == 'double_damage':
+            self.double_damage_active = True
+            self.double_damage_timer = POWERUP_DURATION
+        elif powerup_type == 'magnet':
+            self.magnet_active = True
+            self.magnet_timer = POWERUP_DURATION
+        elif powerup_type == 'time_slow':
+            self.time_slow_active = True
+            self.time_slow_timer = POWERUP_DURATION
+        elif powerup_type == 'nuke':
+            # Instant effect - destroy all asteroids
+            for asteroid in self.asteroids:
+                self.explosions.append(Explosion(asteroid.x, asteroid.y))
+                self.create_debris_particles(asteroid.x, asteroid.y, count=int(asteroid.radius / 2))
+                self.score += asteroid.points
+            self.asteroids = []
+            self.screen_shake = SCREEN_SHAKE_DURATION * 2
         self.play_sound('powerup')
+
+    def create_laser_particles(self, x, y):
+        """Create particles for laser trail."""
+        for _ in range(2):
+            color = random.choice(PARTICLE_COLORS['laser'])
+            vx = random.uniform(-1, 1)
+            vy = random.uniform(-1, 1)
+            self.particles.append(Particle(x, y, color, vx, vy, size=2, lifetime=15))
+
+    def create_debris_particles(self, x, y, count=10):
+        """Create debris particles when asteroid breaks."""
+        for _ in range(count):
+            color = random.choice(PARTICLE_COLORS['debris'])
+            angle = random.uniform(0, 360)
+            speed = random.uniform(1, 4)
+            vx = speed * math.cos(math.radians(angle))
+            vy = speed * math.sin(math.radians(angle))
+            size = random.randint(2, 4)
+            self.particles.append(Particle(x, y, color, vx, vy, size, lifetime=40))
+
+    def create_engine_particles(self, x, y):
+        """Create engine thrust particles behind ship."""
+        for _ in range(2):
+            color = random.choice(PARTICLE_COLORS['engine'])
+            vx = random.uniform(-3, -1)
+            vy = random.uniform(-0.5, 0.5)
+            size = random.randint(2, 3)
+            self.particles.append(Particle(x, y, color, vx, vy, size, lifetime=10))
+
+    def create_powerup_particles(self, x, y):
+        """Create sparkle particles around power-ups."""
+        angle = random.uniform(0, 360)
+        speed = random.uniform(0.5, 1.5)
+        vx = speed * math.cos(math.radians(angle))
+        vy = speed * math.sin(math.radians(angle))
+        color = random.choice(PARTICLE_COLORS['powerup'])
+        self.particles.append(Particle(x, y, color, vx, vy, size=2, lifetime=20))
+
+    def create_impact_particles(self, x, y):
+        """Create impact particles when laser hits asteroid."""
+        for _ in range(5):
+            color = random.choice(PARTICLE_COLORS['impact'])
+            angle = random.uniform(0, 360)
+            speed = random.uniform(2, 5)
+            vx = speed * math.cos(math.radians(angle))
+            vy = speed * math.sin(math.radians(angle))
+            self.particles.append(Particle(x, y, color, vx, vy, size=3, lifetime=15))
 
     def update(self):
         """Update all game objects."""
@@ -698,6 +859,11 @@ class Game:
         keys = pygame.key.get_pressed()
         self.ship.update(keys)
 
+        # Create engine particles when moving
+        if keys[pygame.K_w] or keys[pygame.K_s] or keys[pygame.K_a] or keys[pygame.K_d] or \
+           keys[pygame.K_UP] or keys[pygame.K_DOWN] or keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]:
+            self.create_engine_particles(self.ship.x, self.ship.y)
+
         # Update laser cooldown
         if self.laser_cooldown > 0:
             self.laser_cooldown -= 1
@@ -713,6 +879,21 @@ class Game:
             if self.spread_shot_timer == 0:
                 self.spread_shot_active = False
 
+        if self.double_damage_timer > 0:
+            self.double_damage_timer -= 1
+            if self.double_damage_timer == 0:
+                self.double_damage_active = False
+
+        if self.magnet_timer > 0:
+            self.magnet_timer -= 1
+            if self.magnet_timer == 0:
+                self.magnet_active = False
+
+        if self.time_slow_timer > 0:
+            self.time_slow_timer -= 1
+            if self.time_slow_timer == 0:
+                self.time_slow_active = False
+
         # Update combo timer
         if self.combo_timer > 0:
             self.combo_timer -= 1
@@ -722,16 +903,42 @@ class Game:
         # Update lasers
         for laser in self.lasers:
             laser.update()
+            # Create laser trail particles
+            self.create_laser_particles(laser.x, laser.y)
         self.lasers = [laser for laser in self.lasers if not laser.is_off_screen()]
 
         # Update asteroids
         for asteroid in self.asteroids:
-            asteroid.update()
+            # Time slow effect - update asteroids at half speed
+            if self.time_slow_active:
+                # Save original velocities
+                orig_vx, orig_vy = asteroid.velocity_x, asteroid.velocity_y
+                asteroid.velocity_x *= 0.5
+                asteroid.velocity_y *= 0.5
+                asteroid.update()
+                # Restore original velocities
+                asteroid.velocity_x, asteroid.velocity_y = orig_vx, orig_vy
+            else:
+                asteroid.update()
         self.asteroids = [asteroid for asteroid in self.asteroids if not asteroid.is_off_screen()]
 
         # Update power-ups
         for powerup in self.powerups:
             powerup.update()
+            # Magnet effect - pull power-ups towards ship
+            if self.magnet_active:
+                ship_center = self.ship.get_center()
+                dx = ship_center[0] - powerup.x
+                dy = ship_center[1] - powerup.y
+                distance = math.sqrt(dx**2 + dy**2)
+                if distance > 0:
+                    # Pull towards ship
+                    pull_speed = 3
+                    powerup.x += (dx / distance) * pull_speed
+                    powerup.y += (dy / distance) * pull_speed
+            # Create sparkle particles around power-ups
+            if random.random() < 0.3:  # 30% chance each frame
+                self.create_powerup_particles(powerup.x, powerup.y)
         self.powerups = [powerup for powerup in self.powerups if not powerup.is_off_screen()]
 
         # Spawn new asteroids
@@ -752,6 +959,11 @@ class Game:
         # Update stars
         for star in self.stars:
             star.update(self.paused)
+
+        # Update particles
+        for particle in self.particles:
+            particle.update()
+        self.particles = [particle for particle in self.particles if not particle.is_dead()]
 
         # Update screen shake
         if self.screen_shake > 0:
@@ -782,6 +994,9 @@ class Game:
                         asteroids_to_remove.append(j)
                         # Create explosion
                         self.explosions.append(Explosion(asteroid.x, asteroid.y))
+                        # Create impact and debris particles
+                        self.create_impact_particles(asteroid.x, asteroid.y)
+                        self.create_debris_particles(asteroid.x, asteroid.y, count=int(asteroid.radius / 3))
                         # Update combo
                         self.combo += 1
                         self.combo_timer = COMBO_TIMEOUT
@@ -789,8 +1004,8 @@ class Game:
                         multiplier_index = min(self.combo - 1, len(COMBO_MULTIPLIERS) - 1)
                         multiplier = COMBO_MULTIPLIERS[multiplier_index]
                         self.score += asteroid.points * multiplier
-                        # Break asteroid into smaller pieces if applicable
-                        if asteroid.can_break():
+                        # Break asteroid into smaller pieces if applicable (unless double damage is active)
+                        if asteroid.can_break() and not self.double_damage_active:
                             children = asteroid.create_children(self.difficulty_level)
                             asteroids_to_add.extend(children)
                         # Spawn power-up chance
@@ -813,8 +1028,9 @@ class Game:
                     # Screen shake on hit
                     self.screen_shake = SCREEN_SHAKE_DURATION
                     self.play_sound('hit')
-                    # Create explosion
+                    # Create explosion and debris particles
                     self.explosions.append(Explosion(asteroid.x, asteroid.y))
+                    self.create_debris_particles(asteroid.x, asteroid.y, count=int(asteroid.radius / 2))
                     # Break asteroid if applicable (even on ship collision)
                     if asteroid.can_break():
                         children = asteroid.create_children(self.difficulty_level)
@@ -843,6 +1059,10 @@ class Game:
         # Draw stars
         for star in self.stars:
             star.draw(offset_screen)
+
+        # Draw particles
+        for particle in self.particles:
+            particle.draw(offset_screen)
 
         # Draw explosions
         for explosion in self.explosions:
@@ -921,6 +1141,22 @@ class Game:
         if self.ship.has_shield:
             shield_text = self.small_font.render(f"Shield: {self.ship.shield_timer // FPS}s", True, POWERUP_COLORS['shield'])
             screen.blit(shield_text, (20, y_offset))
+            y_offset += 30
+
+        if self.double_damage_active:
+            dd_text = self.small_font.render(f"Double Damage: {self.double_damage_timer // FPS}s", True, POWERUP_COLORS['double_damage'])
+            screen.blit(dd_text, (20, y_offset))
+            y_offset += 30
+
+        if self.magnet_active:
+            mag_text = self.small_font.render(f"Magnet: {self.magnet_timer // FPS}s", True, POWERUP_COLORS['magnet'])
+            screen.blit(mag_text, (20, y_offset))
+            y_offset += 30
+
+        if self.time_slow_active:
+            ts_text = self.small_font.render(f"Time Slow: {self.time_slow_timer // FPS}s", True, POWERUP_COLORS['time_slow'])
+            screen.blit(ts_text, (20, y_offset))
+            y_offset += 30
 
         # Draw controls
         controls_text = self.small_font.render("WASD/Arrows: Move | SPACE: Shoot | P: Pause", True, TEXT_COLOR)
