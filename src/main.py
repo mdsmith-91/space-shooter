@@ -6,7 +6,6 @@ import math
 
 # Initialize pygame
 pygame.init()
-pygame.mixer.init()
 
 # =============================================================================
 # CONSTANTS
@@ -31,13 +30,13 @@ LASER_COLOR = (0, 255, 255)
 LASER_GLOW_COLOR = (150, 255, 255)
 EXPLOSION_COLORS = [(255, 150, 50), (255, 200, 100), (255, 100, 20)]
 POWERUP_COLORS = {
-    'shield': (100, 255, 100),
-    'rapid_fire': (255, 255, 100),
-    'spread_shot': (255, 150, 255),
-    'double_damage': (255, 100, 200),
-    'magnet': (200, 100, 255),
-    'time_slow': (100, 200, 255),
-    'nuke': (255, 50, 50),
+    "shield": (100, 255, 100),
+    "rapid_fire": (255, 255, 100),
+    "spread_shot": (255, 150, 255),
+    "double_damage": (255, 100, 200),
+    "magnet": (200, 100, 255),
+    "time_slow": (100, 200, 255),
+    "nuke": (255, 50, 50),
 }
 SHIELD_COLOR = (100, 255, 100)
 HEALTH_COLOR = (255, 100, 100)
@@ -45,11 +44,11 @@ COMBO_COLOR = (255, 255, 100)
 
 # Particle colors
 PARTICLE_COLORS = {
-    'laser': [(0, 255, 255), (100, 255, 255), (150, 255, 255)],
-    'debris': [(150, 150, 150), (180, 180, 180), (120, 120, 120)],
-    'engine': [(255, 150, 50), (255, 200, 100), (255, 100, 20)],
-    'powerup': [(255, 255, 100), (255, 200, 255), (200, 255, 255)],
-    'impact': [(255, 255, 255), (255, 200, 100), (255, 150, 50)],
+    "laser": [(0, 255, 255), (100, 255, 255), (150, 255, 255)],
+    "debris": [(150, 150, 150), (180, 180, 180), (120, 120, 120)],
+    "engine": [(255, 150, 50), (255, 200, 100), (255, 100, 20)],
+    "powerup": [(255, 255, 100), (255, 200, 255), (200, 255, 255)],
+    "impact": [(255, 255, 255), (255, 200, 100), (255, 150, 50)],
 }
 
 # Ship settings
@@ -130,10 +129,10 @@ SCREEN_SHAKE_INTENSITY = 8
 HIGH_SCORE_FILE = "high_score.txt"
 MAX_NAME_LENGTH = 15
 
-
 # =============================================================================
 # CLASSES
 # =============================================================================
+
 
 class Ship:
     """Player-controlled spaceship."""
@@ -186,41 +185,67 @@ class Ship:
         ship_color = SHIP_DAMAGE_COLOR if self.damage_flash_timer > 0 else SHIP_COLOR
 
         # Main ship body (oriented to point east)
-        pygame.draw.polygon(screen, ship_color, [
-            (self.x + self.width, self.y),
-            (self.x, self.y - self.height // 2),
-            (self.x, self.y + self.height // 2)
-        ])
+        pygame.draw.polygon(
+            screen,
+            ship_color,
+            [
+                (self.x + self.width, self.y),
+                (self.x, self.y - self.height // 2),
+                (self.x, self.y + self.height // 2),
+            ],
+        )
 
         # Ship cockpit
-        pygame.draw.circle(screen, SHIP_COCKPIT_COLOR,
-                          (self.x + self.width // 4, self.y),
-                          self.width // 3)
+        pygame.draw.circle(
+            screen,
+            SHIP_COCKPIT_COLOR,
+            (self.x + self.width // 4, self.y),
+            self.width // 3,
+        )
 
         # Ship wings
-        pygame.draw.polygon(screen, SHIP_WING_COLOR, [
-            (self.x + self.width // 2, self.y - self.height),
-            (self.x, self.y - self.height // 2),
-            (self.x + self.width // 2, self.y)
-        ])
+        pygame.draw.polygon(
+            screen,
+            SHIP_WING_COLOR,
+            [
+                (self.x + self.width // 2, self.y - self.height),
+                (self.x, self.y - self.height // 2),
+                (self.x + self.width // 2, self.y),
+            ],
+        )
 
-        pygame.draw.polygon(screen, SHIP_WING_COLOR, [
-            (self.x + self.width // 2, self.y + self.height),
-            (self.x, self.y + self.height // 2),
-            (self.x + self.width // 2, self.y)
-        ])
+        pygame.draw.polygon(
+            screen,
+            SHIP_WING_COLOR,
+            [
+                (self.x + self.width // 2, self.y + self.height),
+                (self.x, self.y + self.height // 2),
+                (self.x + self.width // 2, self.y),
+            ],
+        )
 
         # Draw shield if active
         if self.has_shield:
             shield_radius = max(self.width, self.height)
             for i in range(3):
                 alpha = 100 - i * 30
-                s = pygame.Surface((shield_radius * 2, shield_radius * 2), pygame.SRCALPHA)
-                pygame.draw.circle(s, (*SHIELD_COLOR, alpha),
-                                 (shield_radius, shield_radius),
-                                 shield_radius - i * 5, 2)
-                screen.blit(s, (int(self.x - shield_radius + self.width // 2),
-                               int(self.y - shield_radius)))
+                s = pygame.Surface(
+                    (shield_radius * 2, shield_radius * 2), pygame.SRCALPHA
+                )
+                pygame.draw.circle(
+                    s,
+                    (*SHIELD_COLOR, alpha),
+                    (shield_radius, shield_radius),
+                    shield_radius - i * 5,
+                    2,
+                )
+                screen.blit(
+                    s,
+                    (
+                        int(self.x - shield_radius + self.width // 2),
+                        int(self.y - shield_radius),
+                    ),
+                )
 
     def get_center(self):
         """Return the center point of the ship."""
@@ -250,7 +275,9 @@ class Ship:
 class Asteroid:
     """Asteroid obstacle."""
 
-    def __init__(self, x, y, radius, speed_multiplier=1.0, velocity_x=None, velocity_y=None):
+    def __init__(
+        self, x, y, radius, speed_multiplier=1.0, velocity_x=None, velocity_y=None
+    ):
         self.x = x
         self.y = y
         self.radius = radius
@@ -262,11 +289,11 @@ class Asteroid:
 
         # Determine size category for breaking mechanics
         if radius >= 40:
-            self.size_category = 'large'
+            self.size_category = "large"
         elif radius >= 25:
-            self.size_category = 'medium'
+            self.size_category = "medium"
         else:
-            self.size_category = 'small'
+            self.size_category = "small"
 
         # Rotation
         self.angle = random.uniform(0, 360)
@@ -292,39 +319,59 @@ class Asteroid:
     def draw(self, screen):
         """Draw the asteroid with rotating details."""
         # Main asteroid body
-        pygame.draw.circle(screen, ASTEROID_COLORS[0], (int(self.x), int(self.y)), self.radius)
+        pygame.draw.circle(
+            screen, ASTEROID_COLORS[0], (int(self.x), int(self.y)), self.radius
+        )
 
         # Add rotated details to make it look realistic
         detail1_x, detail1_y = self._rotate_point(-self.radius // 3, -self.radius // 4)
-        pygame.draw.circle(screen, ASTEROID_COLORS[1],
-                          (int(detail1_x), int(detail1_y)),
-                          self.radius // 2)
+        pygame.draw.circle(
+            screen,
+            ASTEROID_COLORS[1],
+            (int(detail1_x), int(detail1_y)),
+            self.radius // 2,
+        )
 
         detail2_x, detail2_y = self._rotate_point(self.radius // 2, self.radius // 3)
-        pygame.draw.circle(screen, ASTEROID_COLORS[2],
-                          (int(detail2_x), int(detail2_y)),
-                          self.radius // 3)
+        pygame.draw.circle(
+            screen,
+            ASTEROID_COLORS[2],
+            (int(detail2_x), int(detail2_y)),
+            self.radius // 3,
+        )
 
         detail3_x, detail3_y = self._rotate_point(-self.radius // 2, self.radius // 2)
-        pygame.draw.circle(screen, ASTEROID_COLORS[1],
-                          (int(detail3_x), int(detail3_y)),
-                          self.radius // 4)
+        pygame.draw.circle(
+            screen,
+            ASTEROID_COLORS[1],
+            (int(detail3_x), int(detail3_y)),
+            self.radius // 4,
+        )
 
         # Add rotated craters
         crater1_x, crater1_y = self._rotate_point(-self.radius // 4, 0)
-        pygame.draw.circle(screen, ASTEROID_COLORS[2],
-                          (int(crater1_x), int(crater1_y)),
-                          self.radius // 6)
+        pygame.draw.circle(
+            screen,
+            ASTEROID_COLORS[2],
+            (int(crater1_x), int(crater1_y)),
+            self.radius // 6,
+        )
 
         crater2_x, crater2_y = self._rotate_point(self.radius // 3, -self.radius // 3)
-        pygame.draw.circle(screen, ASTEROID_COLORS[2],
-                          (int(crater2_x), int(crater2_y)),
-                          self.radius // 8)
+        pygame.draw.circle(
+            screen,
+            ASTEROID_COLORS[2],
+            (int(crater2_x), int(crater2_y)),
+            self.radius // 8,
+        )
 
         crater3_x, crater3_y = self._rotate_point(-self.radius // 2, self.radius // 4)
-        pygame.draw.circle(screen, ASTEROID_COLORS[2],
-                          (int(crater3_x), int(crater3_y)),
-                          self.radius // 5)
+        pygame.draw.circle(
+            screen,
+            ASTEROID_COLORS[2],
+            (int(crater3_x), int(crater3_y)),
+            self.radius // 5,
+        )
 
     def is_off_screen(self):
         """Check if asteroid is completely off-screen."""
@@ -333,13 +380,15 @@ class Asteroid:
     def collides_with_ship(self, ship):
         """Check collision with ship using circular collision detection."""
         ship_center = ship.get_center()
-        distance_squared = (ship_center[0] - self.x) ** 2 + (ship_center[1] - self.y) ** 2
+        distance_squared = (ship_center[0] - self.x) ** 2 + (
+            ship_center[1] - self.y
+        ) ** 2
         collision_radius = self.radius + ship.width // 2
-        return distance_squared < collision_radius ** 2
+        return distance_squared < collision_radius**2
 
     def can_break(self):
         """Check if asteroid can break into smaller pieces."""
-        return self.size_category in ['large', 'medium']
+        return self.size_category in ["large", "medium"]
 
     def create_children(self, difficulty_multiplier=1.0):
         """Create smaller asteroids when this one breaks."""
@@ -348,7 +397,7 @@ class Asteroid:
             return children
 
         # Determine number of children and their size
-        if self.size_category == 'large':
+        if self.size_category == "large":
             num_children = 3
             child_radius = random.randint(20, 30)
         else:  # medium
@@ -371,7 +420,9 @@ class Asteroid:
             child_x = self.x + math.cos(math.radians(offset_angle)) * offset_dist
             child_y = self.y + math.sin(math.radians(offset_angle)) * offset_dist
 
-            child = Asteroid(child_x, child_y, child_radius, difficulty_multiplier, vx, vy)
+            child = Asteroid(
+                child_x, child_y, child_radius, difficulty_multiplier, vx, vy
+            )
             children.append(child)
 
         return children
@@ -380,7 +431,7 @@ class Asteroid:
 class Boss:
     """Boss enemy with health, special movement, and visual effects."""
 
-    def __init__(self, pattern='sine'):
+    def __init__(self, pattern="sine"):
         self.x = WIDTH + BOSS_RADIUS
         self.y = HEIGHT // 2
         self.radius = BOSS_RADIUS
@@ -408,21 +459,23 @@ class Boss:
         self.x -= self.speed
 
         # Apply movement pattern
-        if self.pattern == 'sine':
+        if self.pattern == "sine":
             # Sinusoidal wave
             amplitude = 150
             frequency = 0.02
             self.y = self.center_y + amplitude * math.sin(self.time * frequency)
 
-        elif self.pattern == 'circle':
+        elif self.pattern == "circle":
             # Circular motion
             radius_movement = 120
             self.y = self.center_y + radius_movement * math.sin(self.time * 0.03)
 
-        elif self.pattern == 'figure8':
+        elif self.pattern == "figure8":
             # Figure-8 pattern
             amplitude = 100
-            self.y = self.center_y + amplitude * math.sin(self.time * 0.04) * math.cos(self.time * 0.02)
+            self.y = self.center_y + amplitude * math.sin(self.time * 0.04) * math.cos(
+                self.time * 0.02
+            )
 
         # Keep within screen bounds
         self.y = max(self.radius, min(HEIGHT - self.radius, self.y))
@@ -434,7 +487,7 @@ class Boss:
         glow_color = (
             min(255, BOSS_GLOW_COLOR[0] + glow_intensity),
             min(255, BOSS_GLOW_COLOR[1] + glow_intensity // 2),
-            min(255, BOSS_GLOW_COLOR[2] + glow_intensity // 2)
+            min(255, BOSS_GLOW_COLOR[2] + glow_intensity // 2),
         )
 
         # Draw glow rings
@@ -442,7 +495,9 @@ class Boss:
             glow_radius = self.radius + 10 + i * 8
             alpha = 80 - i * 25
             s = pygame.Surface((glow_radius * 2, glow_radius * 2), pygame.SRCALPHA)
-            pygame.draw.circle(s, (*glow_color, alpha), (glow_radius, glow_radius), glow_radius, 3)
+            pygame.draw.circle(
+                s, (*glow_color, alpha), (glow_radius, glow_radius), glow_radius, 3
+            )
             screen.blit(s, (int(self.x - glow_radius), int(self.y - glow_radius)))
 
         # Main boss body (darker red)
@@ -454,18 +509,25 @@ class Boss:
             detail_dist = self.radius * 0.7
             detail_x = self.x + detail_dist * math.cos(math.radians(detail_angle))
             detail_y = self.y + detail_dist * math.sin(math.radians(detail_angle))
-            pygame.draw.circle(screen, BOSS_DETAIL_COLOR, (int(detail_x), int(detail_y)), self.radius // 4)
+            pygame.draw.circle(
+                screen,
+                BOSS_DETAIL_COLOR,
+                (int(detail_x), int(detail_y)),
+                self.radius // 4,
+            )
 
         # Center core (pulsing)
         core_size = int(self.radius // 3 + 5 * math.sin(math.radians(self.glow_pulse)))
         pygame.draw.circle(screen, glow_color, (int(self.x), int(self.y)), core_size)
 
         # Outer ring
-        pygame.draw.circle(screen, BOSS_DETAIL_COLOR, (int(self.x), int(self.y)), self.radius, 4)
+        pygame.draw.circle(
+            screen, BOSS_DETAIL_COLOR, (int(self.x), int(self.y)), self.radius, 4
+        )
 
-    def take_damage(self):
+    def take_damage(self, damage=1):
         """Boss takes damage from laser hit."""
-        self.health -= 1
+        self.health -= damage
         return self.health <= 0  # Returns True if defeated
 
     def is_off_screen(self):
@@ -475,9 +537,11 @@ class Boss:
     def collides_with_ship(self, ship):
         """Check collision with ship."""
         ship_center = ship.get_center()
-        distance_squared = (ship_center[0] - self.x) ** 2 + (ship_center[1] - self.y) ** 2
+        distance_squared = (ship_center[0] - self.x) ** 2 + (
+            ship_center[1] - self.y
+        ) ** 2
         collision_radius = self.radius + ship.width // 2
-        return distance_squared < collision_radius ** 2
+        return distance_squared < collision_radius**2
 
 
 class Laser:
@@ -501,10 +565,12 @@ class Laser:
 
     def draw(self, screen):
         """Draw the laser with glow effect."""
-        pygame.draw.rect(screen, LASER_COLOR,
-                        (int(self.x), int(self.y - 3), self.width, self.height))
-        pygame.draw.rect(screen, LASER_GLOW_COLOR,
-                        (int(self.x), int(self.y - 2), self.width, 4))
+        pygame.draw.rect(
+            screen, LASER_COLOR, (int(self.x), int(self.y - 3), self.width, self.height)
+        )
+        pygame.draw.rect(
+            screen, LASER_GLOW_COLOR, (int(self.x), int(self.y - 2), self.width, 4)
+        )
 
     def is_off_screen(self):
         """Check if laser is off-screen."""
@@ -512,17 +578,21 @@ class Laser:
 
     def collides_with_asteroid(self, asteroid):
         """Check collision with asteroid using rectangle-circle collision."""
-        return (self.x < asteroid.x + asteroid.radius and
-                self.x + self.width > asteroid.x - asteroid.radius and
-                self.y < asteroid.y + asteroid.radius and
-                self.y + self.height > asteroid.y - asteroid.radius)
+        return (
+            self.x < asteroid.x + asteroid.radius
+            and self.x + self.width > asteroid.x - asteroid.radius
+            and self.y < asteroid.y + asteroid.radius
+            and self.y + self.height > asteroid.y - asteroid.radius
+        )
 
     def collides_with_boss(self, boss):
         """Check collision with boss using rectangle-circle collision."""
-        return (self.x < boss.x + boss.radius and
-                self.x + self.width > boss.x - boss.radius and
-                self.y < boss.y + boss.radius and
-                self.y + self.height > boss.y - boss.radius)
+        return (
+            self.x < boss.x + boss.radius
+            and self.x + self.width > boss.x - boss.radius
+            and self.y < boss.y + boss.radius
+            and self.y + self.height > boss.y - boss.radius
+        )
 
 
 class PowerUp:
@@ -557,7 +627,9 @@ class PowerUp:
         font = pygame.font.SysFont(None, 20)
         letter = self.type[0].upper()
         text = font.render(letter, True, (0, 0, 0))
-        screen.blit(text, (self.x - text.get_width() // 2, self.y - text.get_height() // 2))
+        screen.blit(
+            text, (self.x - text.get_width() // 2, self.y - text.get_height() // 2)
+        )
 
     def is_off_screen(self):
         """Check if power-up is off-screen."""
@@ -566,9 +638,11 @@ class PowerUp:
     def collides_with_ship(self, ship):
         """Check collision with ship."""
         ship_center = ship.get_center()
-        distance_squared = (ship_center[0] - self.x) ** 2 + (ship_center[1] - self.y) ** 2
+        distance_squared = (ship_center[0] - self.x) ** 2 + (
+            ship_center[1] - self.y
+        ) ** 2
         collision_radius = self.size + ship.width // 2
-        return distance_squared < collision_radius ** 2
+        return distance_squared < collision_radius**2
 
 
 class Explosion:
@@ -627,13 +701,17 @@ class Star:
 class Particle:
     """Visual particle effect."""
 
-    def __init__(self, x, y, color, velocity_x=0, velocity_y=0, size=None, lifetime=None):
+    def __init__(
+        self, x, y, color, velocity_x=0, velocity_y=0, size=None, lifetime=None
+    ):
         self.x = x
         self.y = y
         self.color = color
         self.vx = velocity_x
         self.vy = velocity_y
-        self.size = size if size else random.randint(PARTICLE_MIN_SIZE, PARTICLE_MAX_SIZE)
+        self.size = (
+            size if size else random.randint(PARTICLE_MIN_SIZE, PARTICLE_MAX_SIZE)
+        )
         self.lifetime = lifetime if lifetime else PARTICLE_LIFETIME
         self.max_lifetime = self.lifetime
         self.alpha = 255
@@ -692,6 +770,7 @@ class Game:
         self.boss = None
         self.boss_warning = False
         self.boss_warning_timer = 0
+        self.last_boss_spawn_score = 0
 
         # Timers and counters
         self.laser_cooldown = 0
@@ -733,13 +812,13 @@ class Game:
     def init_sounds(self):
         """Initialize sound effects (requires sound files)."""
         sound_files = {
-            'laser': 'sounds/laser.wav',
-            'explosion': 'sounds/explosion.wav',
-            'explosion_big': 'sounds/explosion_big.wav',
-            'hit': 'sounds/hit.wav',
-            'powerup': 'sounds/powerup.wav',
-            'shield': 'sounds/shield.wav',
-            'boss_warning': 'sounds/boss_warning.wav',
+            "laser": "sounds/laser.wav",
+            "explosion": "sounds/explosion.wav",
+            "explosion_big": "sounds/explosion_big.wav",
+            "hit": "sounds/hit.wav",
+            "powerup": "sounds/powerup.wav",
+            "shield": "sounds/shield.wav",
+            "boss_warning": "sounds/boss_warning.wav",
         }
 
         loaded_count = 0
@@ -747,7 +826,7 @@ class Game:
             try:
                 self.sounds[sound_name] = pygame.mixer.Sound(sound_path)
                 loaded_count += 1
-            except:
+            except (FileNotFoundError, pygame.error):
                 # Sound file not found, skip it
                 self.sounds[sound_name] = None
 
@@ -758,15 +837,14 @@ class Game:
 
             # Try to load background music
             try:
-                pygame.mixer.music.load("sounds/music.ogg")
-                pygame.mixer.music.set_volume(0.3)  # 30% volume for background
+                pygame.mixer.music.load("sounds/music.wav")
+                pygame.mixer.music.set_volume(1.0)  # 100% volume for background
                 pygame.mixer.music.play(-1)  # Loop forever
                 print("✅ Background music loaded")
-            except:
+            except (FileNotFoundError, pygame.error):
                 pass  # Music file not found, continue without it
         else:
             print("ℹ️  No sound files found. Game will run silently.")
-            print("ℹ️  See SOUNDS_SETUP.md for instructions to add sounds.")
 
     def play_sound(self, sound_name):
         """Play a sound effect."""
@@ -788,7 +866,7 @@ class Game:
                             self.high_score_player = parts[1]
                         else:
                             self.high_score = int(content)
-            except:
+            except (FileNotFoundError, ValueError, IOError):
                 self.high_score = 0
 
     def save_high_score(self):
@@ -798,7 +876,7 @@ class Game:
                 f.write(f"{self.score}:{self.player_name}")
             self.high_score = self.score
             self.high_score_player = self.player_name
-        except:
+        except (IOError, OSError):
             pass
 
     def create_stars(self):
@@ -831,6 +909,7 @@ class Game:
         self.boss = None
         self.boss_warning = False
         self.boss_warning_timer = 0
+        self.last_boss_spawn_score = 0
         self.score = 0
         self.game_over = False
         self.paused = False
@@ -871,17 +950,30 @@ class Game:
                     self.reset()
 
                 # Shoot laser
-                elif event.key == pygame.K_SPACE and not self.game_over and not self.paused and self.laser_cooldown == 0:
+                elif (
+                    event.key == pygame.K_SPACE
+                    and not self.game_over
+                    and not self.paused
+                    and self.laser_cooldown == 0
+                ):
                     self.shoot_laser()
 
                 # Submit name
-                elif event.key == pygame.K_RETURN and self.game_over and self.name_input_active:
+                elif (
+                    event.key == pygame.K_RETURN
+                    and self.game_over
+                    and self.name_input_active
+                ):
                     self.name_input_active = False
                     if self.score > self.high_score:
                         self.save_high_score()
 
                 # Backspace in name entry
-                elif event.key == pygame.K_BACKSPACE and self.game_over and self.name_input_active:
+                elif (
+                    event.key == pygame.K_BACKSPACE
+                    and self.game_over
+                    and self.name_input_active
+                ):
                     self.player_name = self.player_name[:-1]
 
                 # Exit game
@@ -889,12 +981,19 @@ class Game:
                     self.running = False
 
                 # Type name
-                elif self.game_over and self.name_input_active and len(self.player_name) < MAX_NAME_LENGTH and event.unicode.isprintable():
+                elif (
+                    self.game_over
+                    and self.name_input_active
+                    and len(self.player_name) < MAX_NAME_LENGTH
+                    and event.unicode.isprintable()
+                ):
                     self.player_name += event.unicode
 
     def shoot_laser(self):
         """Fire laser(s) based on current power-ups."""
-        cooldown = RAPID_FIRE_COOLDOWN if self.rapid_fire_active else LASER_COOLDOWN_FRAMES
+        cooldown = (
+            RAPID_FIRE_COOLDOWN if self.rapid_fire_active else LASER_COOLDOWN_FRAMES
+        )
 
         if self.spread_shot_active:
             # Shoot 3 lasers in a spread
@@ -907,12 +1006,20 @@ class Game:
             self.lasers.append(laser)
 
         self.laser_cooldown = cooldown
-        self.play_sound('laser')
+        self.play_sound("laser")
 
     def spawn_powerup(self, x, y):
         """Spawn a random power-up."""
         if random.random() < POWERUP_SPAWN_CHANCE:
-            powerup_types = ['shield', 'rapid_fire', 'spread_shot', 'double_damage', 'magnet', 'time_slow', 'nuke']
+            powerup_types = [
+                "shield",
+                "rapid_fire",
+                "spread_shot",
+                "double_damage",
+                "magnet",
+                "time_slow",
+                "nuke",
+            ]
             # Weight the power-ups (nuke is rarer)
             weights = [1.5, 1.5, 1.5, 1.2, 1.2, 1.0, 0.3]
             powerup_type = random.choices(powerup_types, weights=weights)[0]
@@ -920,38 +1027,75 @@ class Game:
 
     def activate_powerup(self, powerup_type):
         """Activate a power-up effect."""
-        if powerup_type == 'shield':
+        if powerup_type == "shield":
             self.ship.has_shield = True
             self.ship.shield_timer = SHIELD_DURATION
-        elif powerup_type == 'rapid_fire':
+        elif powerup_type == "rapid_fire":
             self.rapid_fire_active = True
             self.rapid_fire_timer = POWERUP_DURATION
-        elif powerup_type == 'spread_shot':
+        elif powerup_type == "spread_shot":
             self.spread_shot_active = True
             self.spread_shot_timer = POWERUP_DURATION
-        elif powerup_type == 'double_damage':
+        elif powerup_type == "double_damage":
             self.double_damage_active = True
             self.double_damage_timer = POWERUP_DURATION
-        elif powerup_type == 'magnet':
+        elif powerup_type == "magnet":
             self.magnet_active = True
             self.magnet_timer = POWERUP_DURATION
-        elif powerup_type == 'time_slow':
+        elif powerup_type == "time_slow":
             self.time_slow_active = True
             self.time_slow_timer = POWERUP_DURATION
-        elif powerup_type == 'nuke':
+        elif powerup_type == "nuke":
             # Instant effect - destroy all asteroids
             for asteroid in self.asteroids:
                 self.explosions.append(Explosion(asteroid.x, asteroid.y))
-                self.create_debris_particles(asteroid.x, asteroid.y, count=int(asteroid.radius / 2))
+                self.create_debris_particles(
+                    asteroid.x, asteroid.y, count=int(asteroid.radius / 2)
+                )
                 self.score += asteroid.points
             self.asteroids = []
+            # Damage boss heavily if present
+            if self.boss:
+                nuke_damage = 5  # Nuke deals heavy damage to boss
+                if self.boss.take_damage(nuke_damage):
+                    # Boss defeated by nuke!
+                    self.create_impact_particles(self.boss.x, self.boss.y)
+                    self.create_debris_particles(self.boss.x, self.boss.y, count=50)
+                    # Big explosion
+                    for _ in range(5):
+                        offset_x = random.uniform(-30, 30)
+                        offset_y = random.uniform(-30, 30)
+                        self.explosions.append(
+                            Explosion(self.boss.x + offset_x, self.boss.y + offset_y)
+                        )
+                    self.score += self.boss.points
+                    # Drop guaranteed power-up
+                    powerup_types = [
+                        "shield",
+                        "rapid_fire",
+                        "spread_shot",
+                        "double_damage",
+                        "magnet",
+                        "time_slow",
+                    ]
+                    powerup_type_drop = random.choice(powerup_types)
+                    self.powerups.append(
+                        PowerUp(self.boss.x, self.boss.y, powerup_type_drop)
+                    )
+                    self.play_sound("explosion_big")
+                    self.boss = None
+                    # Update last boss spawn score to prevent immediate re-spawn
+                    self.last_boss_spawn_score = self.score
+                else:
+                    # Just damaged, create impact
+                    self.create_impact_particles(self.boss.x, self.boss.y)
             self.screen_shake = SCREEN_SHAKE_DURATION * 2
-        self.play_sound('powerup')
+        self.play_sound("powerup")
 
     def create_laser_particles(self, x, y):
         """Create particles for laser trail."""
         for _ in range(2):
-            color = random.choice(PARTICLE_COLORS['laser'])
+            color = random.choice(PARTICLE_COLORS["laser"])
             vx = random.uniform(-1, 1)
             vy = random.uniform(-1, 1)
             self.particles.append(Particle(x, y, color, vx, vy, size=2, lifetime=15))
@@ -959,7 +1103,7 @@ class Game:
     def create_debris_particles(self, x, y, count=10):
         """Create debris particles when asteroid breaks."""
         for _ in range(count):
-            color = random.choice(PARTICLE_COLORS['debris'])
+            color = random.choice(PARTICLE_COLORS["debris"])
             angle = random.uniform(0, 360)
             speed = random.uniform(1, 4)
             vx = speed * math.cos(math.radians(angle))
@@ -970,7 +1114,7 @@ class Game:
     def create_engine_particles(self, x, y):
         """Create engine thrust particles behind ship."""
         for _ in range(2):
-            color = random.choice(PARTICLE_COLORS['engine'])
+            color = random.choice(PARTICLE_COLORS["engine"])
             vx = random.uniform(-3, -1)
             vy = random.uniform(-0.5, 0.5)
             size = random.randint(2, 3)
@@ -982,13 +1126,13 @@ class Game:
         speed = random.uniform(0.5, 1.5)
         vx = speed * math.cos(math.radians(angle))
         vy = speed * math.sin(math.radians(angle))
-        color = random.choice(PARTICLE_COLORS['powerup'])
+        color = random.choice(PARTICLE_COLORS["powerup"])
         self.particles.append(Particle(x, y, color, vx, vy, size=2, lifetime=20))
 
     def create_impact_particles(self, x, y):
         """Create impact particles when laser hits asteroid."""
         for _ in range(5):
-            color = random.choice(PARTICLE_COLORS['impact'])
+            color = random.choice(PARTICLE_COLORS["impact"])
             angle = random.uniform(0, 360)
             speed = random.uniform(2, 5)
             vx = speed * math.cos(math.radians(angle))
@@ -1015,20 +1159,22 @@ class Game:
         # Check for boss spawn
         if self.boss is None and not self.boss_warning:
             # Spawn boss every BOSS_SPAWN_INTERVAL points
-            if self.score > 0 and self.score % BOSS_SPAWN_INTERVAL < 50 and self.score >= BOSS_SPAWN_INTERVAL:
+            if (
+                self.score >= BOSS_SPAWN_INTERVAL
+                and self.score - self.last_boss_spawn_score >= BOSS_SPAWN_INTERVAL
+            ):
                 self.boss_warning = True
                 self.boss_warning_timer = BOSS_WARNING_DURATION
+                self.last_boss_spawn_score = self.score
+                self.play_sound("boss_warning")
 
         # Update boss warning
         if self.boss_warning:
             self.boss_warning_timer -= 1
-            # Play warning sound at start of warning
-            if self.boss_warning_timer == BOSS_WARNING_DURATION - 1:
-                self.play_sound('boss_warning')
             if self.boss_warning_timer <= 0:
                 self.boss_warning = False
                 # Spawn the boss
-                patterns = ['sine', 'circle', 'figure8']
+                patterns = ["sine", "circle", "figure8"]
                 pattern = random.choice(patterns)
                 self.boss = Boss(pattern)
 
@@ -1037,8 +1183,16 @@ class Game:
         self.ship.update(keys)
 
         # Create engine particles when moving
-        if keys[pygame.K_w] or keys[pygame.K_s] or keys[pygame.K_a] or keys[pygame.K_d] or \
-           keys[pygame.K_UP] or keys[pygame.K_DOWN] or keys[pygame.K_LEFT] or keys[pygame.K_RIGHT]:
+        if (
+            keys[pygame.K_w]
+            or keys[pygame.K_s]
+            or keys[pygame.K_a]
+            or keys[pygame.K_d]
+            or keys[pygame.K_UP]
+            or keys[pygame.K_DOWN]
+            or keys[pygame.K_LEFT]
+            or keys[pygame.K_RIGHT]
+        ):
             self.create_engine_particles(self.ship.x, self.ship.y)
 
         # Update laser cooldown
@@ -1097,7 +1251,9 @@ class Game:
                 asteroid.velocity_x, asteroid.velocity_y = orig_vx, orig_vy
             else:
                 asteroid.update()
-        self.asteroids = [asteroid for asteroid in self.asteroids if not asteroid.is_off_screen()]
+        self.asteroids = [
+            asteroid for asteroid in self.asteroids if not asteroid.is_off_screen()
+        ]
 
         # Update boss
         if self.boss:
@@ -1123,22 +1279,28 @@ class Game:
             # Create sparkle particles around power-ups
             if random.random() < 0.3:  # 30% chance each frame
                 self.create_powerup_particles(powerup.x, powerup.y)
-        self.powerups = [powerup for powerup in self.powerups if not powerup.is_off_screen()]
+        self.powerups = [
+            powerup for powerup in self.powerups if not powerup.is_off_screen()
+        ]
 
         # Spawn new asteroids
         self.asteroid_spawn_timer += 1
         spawn_freq = max(30, int(ASTEROID_SPAWN_FREQUENCY / self.difficulty_level))
-        if len(self.asteroids) < MAX_ASTEROIDS and self.asteroid_spawn_timer >= spawn_freq:
-            if random.randint(1, spawn_freq) == 1:
-                y = random.randint(0, HEIGHT - 100)
-                radius = random.randint(ASTEROID_MIN_RADIUS, ASTEROID_MAX_RADIUS)
-                self.asteroids.append(Asteroid(WIDTH, y, radius, self.difficulty_level))
-                self.asteroid_spawn_timer = 0
+        if (
+            len(self.asteroids) < MAX_ASTEROIDS
+            and self.asteroid_spawn_timer >= spawn_freq
+        ):
+            y = random.randint(0, HEIGHT - 100)
+            radius = random.randint(ASTEROID_MIN_RADIUS, ASTEROID_MAX_RADIUS)
+            self.asteroids.append(Asteroid(WIDTH, y, radius, self.difficulty_level))
+            self.asteroid_spawn_timer = 0
 
         # Update explosions
         for explosion in self.explosions:
             explosion.update()
-        self.explosions = [explosion for explosion in self.explosions if not explosion.is_finished()]
+        self.explosions = [
+            explosion for explosion in self.explosions if not explosion.is_finished()
+        ]
 
         # Update stars
         for star in self.stars:
@@ -1147,13 +1309,19 @@ class Game:
         # Update particles
         for particle in self.particles:
             particle.update()
-        self.particles = [particle for particle in self.particles if not particle.is_dead()]
+        self.particles = [
+            particle for particle in self.particles if not particle.is_dead()
+        ]
 
         # Update screen shake
         if self.screen_shake > 0:
             self.screen_shake -= 1
-            self.shake_offset_x = random.randint(-SCREEN_SHAKE_INTENSITY, SCREEN_SHAKE_INTENSITY)
-            self.shake_offset_y = random.randint(-SCREEN_SHAKE_INTENSITY, SCREEN_SHAKE_INTENSITY)
+            self.shake_offset_x = random.randint(
+                -SCREEN_SHAKE_INTENSITY, SCREEN_SHAKE_INTENSITY
+            )
+            self.shake_offset_y = random.randint(
+                -SCREEN_SHAKE_INTENSITY, SCREEN_SHAKE_INTENSITY
+            )
         else:
             self.shake_offset_x = 0
             self.shake_offset_y = 0
@@ -1180,25 +1348,39 @@ class Game:
                         self.explosions.append(Explosion(asteroid.x, asteroid.y))
                         # Create impact and debris particles
                         self.create_impact_particles(asteroid.x, asteroid.y)
-                        self.create_debris_particles(asteroid.x, asteroid.y, count=int(asteroid.radius / 3))
+                        self.create_debris_particles(
+                            asteroid.x, asteroid.y, count=int(asteroid.radius / 3)
+                        )
                         # Update combo
                         self.combo += 1
                         self.combo_timer = COMBO_TIMEOUT
                         # Calculate score with combo multiplier
-                        multiplier_index = min(self.combo - 1, len(COMBO_MULTIPLIERS) - 1)
+                        multiplier_index = min(
+                            self.combo - 1, len(COMBO_MULTIPLIERS) - 1
+                        )
                         multiplier = COMBO_MULTIPLIERS[multiplier_index]
-                        self.score += asteroid.points * multiplier
+                        points = asteroid.points * multiplier
+                        # Double damage doubles the points
+                        if self.double_damage_active:
+                            points *= 2
+                        self.score += points
                         # Break asteroid into smaller pieces if applicable (unless double damage is active)
                         if asteroid.can_break() and not self.double_damage_active:
                             children = asteroid.create_children(self.difficulty_level)
                             asteroids_to_add.extend(children)
                         # Spawn power-up chance
                         self.spawn_powerup(asteroid.x, asteroid.y)
-                        self.play_sound('explosion')
+                        self.play_sound("explosion")
 
         # Remove collided objects
-        self.lasers = [laser for i, laser in enumerate(self.lasers) if i not in lasers_to_remove]
-        self.asteroids = [asteroid for i, asteroid in enumerate(self.asteroids) if i not in asteroids_to_remove]
+        self.lasers = [
+            laser for i, laser in enumerate(self.lasers) if i not in lasers_to_remove
+        ]
+        self.asteroids = [
+            asteroid
+            for i, asteroid in enumerate(self.asteroids)
+            if i not in asteroids_to_remove
+        ]
 
         # Add child asteroids from breaking
         self.asteroids.extend(asteroids_to_add)
@@ -1210,35 +1392,60 @@ class Game:
                 if laser.collides_with_boss(self.boss):
                     if i not in lasers_to_remove_boss:
                         lasers_to_remove_boss.append(i)
-                        # Boss takes damage
-                        if self.boss.take_damage():
+                        # Update combo
+                        self.combo += 1
+                        self.combo_timer = COMBO_TIMEOUT
+                        # Boss takes damage (double if power-up active)
+                        damage = 2 if self.double_damage_active else 1
+                        if self.boss.take_damage(damage):
                             # Boss defeated!
                             self.create_impact_particles(self.boss.x, self.boss.y)
-                            self.create_debris_particles(self.boss.x, self.boss.y, count=50)
+                            self.create_debris_particles(
+                                self.boss.x, self.boss.y, count=50
+                            )
                             # Big explosion
                             for _ in range(5):
                                 offset_x = random.uniform(-30, 30)
                                 offset_y = random.uniform(-30, 30)
-                                self.explosions.append(Explosion(self.boss.x + offset_x, self.boss.y + offset_y))
-                            # Score points
-                            self.score += self.boss.points
+                                self.explosions.append(
+                                    Explosion(
+                                        self.boss.x + offset_x, self.boss.y + offset_y
+                                    )
+                                )
+                            # Score points with combo multiplier
+                            multiplier_index = min(
+                                self.combo - 1, len(COMBO_MULTIPLIERS) - 1
+                            )
+                            multiplier = COMBO_MULTIPLIERS[multiplier_index]
+                            self.score += self.boss.points * multiplier
                             # Drop guaranteed power-up
-                            powerup_types = ['shield', 'rapid_fire', 'spread_shot', 'double_damage', 'magnet', 'time_slow']
+                            powerup_types = [
+                                "shield",
+                                "rapid_fire",
+                                "spread_shot",
+                                "double_damage",
+                                "magnet",
+                                "time_slow",
+                            ]
                             powerup_type = random.choice(powerup_types)
-                            self.powerups.append(PowerUp(self.boss.x, self.boss.y, powerup_type))
+                            self.powerups.append(
+                                PowerUp(self.boss.x, self.boss.y, powerup_type)
+                            )
                             # Huge screen shake
                             self.screen_shake = SCREEN_SHAKE_DURATION * 3
                             # Play big explosion sound
-                            self.play_sound('explosion_big')
+                            self.play_sound("explosion_big")
                             self.boss = None
+                            # Update last boss spawn score to prevent immediate re-spawn
+                            self.last_boss_spawn_score = self.score
                         else:
                             # Just hit, create impact
                             self.create_impact_particles(self.boss.x, self.boss.y)
                             self.screen_shake = SCREEN_SHAKE_DURATION // 2
             # Remove lasers that hit boss
-            for i in lasers_to_remove_boss:
-                if i < len(self.lasers):
-                    self.lasers.pop(i)
+            self.lasers = [
+                laser for i, laser in enumerate(self.lasers) if i not in lasers_to_remove_boss
+            ]
 
         # Ship-asteroid collisions
         for asteroid in self.asteroids:
@@ -1252,12 +1459,14 @@ class Game:
                     self.screen_shake = SCREEN_SHAKE_DURATION
                     # Play appropriate sound (shield break or hit)
                     if had_shield:
-                        self.play_sound('shield')
+                        self.play_sound("shield")
                     else:
-                        self.play_sound('hit')
+                        self.play_sound("hit")
                     # Create explosion and debris particles
                     self.explosions.append(Explosion(asteroid.x, asteroid.y))
-                    self.create_debris_particles(asteroid.x, asteroid.y, count=int(asteroid.radius / 2))
+                    self.create_debris_particles(
+                        asteroid.x, asteroid.y, count=int(asteroid.radius / 2)
+                    )
                     # Break asteroid if applicable (even on ship collision)
                     if asteroid.can_break():
                         children = asteroid.create_children(self.difficulty_level)
@@ -1281,9 +1490,9 @@ class Game:
                 self.screen_shake = SCREEN_SHAKE_DURATION * 2
                 # Play appropriate sound (shield break or hit)
                 if had_shield:
-                    self.play_sound('shield')
+                    self.play_sound("shield")
                 else:
-                    self.play_sound('hit')
+                    self.play_sound("hit")
                 # Reset combo
                 self.combo = 0
                 self.combo_timer = 0
@@ -1355,12 +1564,16 @@ class Game:
         screen.blit(score_text, (20, 20))
 
         # Draw high score
-        high_score_text = self.font.render(f"High Score: {self.high_score}", True, TEXT_COLOR)
+        high_score_text = self.font.render(
+            f"High Score: {self.high_score}", True, TEXT_COLOR
+        )
         screen.blit(high_score_text, (WIDTH - high_score_text.get_width() - 20, 20))
 
         # Draw high score player name
         if self.high_score_player:
-            player_text = self.small_font.render(f"By: {self.high_score_player}", True, TEXT_COLOR)
+            player_text = self.small_font.render(
+                f"By: {self.high_score_player}", True, TEXT_COLOR
+            )
             screen.blit(player_text, (WIDTH - player_text.get_width() - 20, 50))
 
         # Draw lives
@@ -1377,32 +1590,54 @@ class Game:
         # Draw active power-ups
         y_offset = 100
         if self.rapid_fire_active:
-            rf_text = self.small_font.render(f"Rapid Fire: {self.rapid_fire_timer // FPS}s", True, POWERUP_COLORS['rapid_fire'])
+            rf_text = self.small_font.render(
+                f"Rapid Fire: {self.rapid_fire_timer // FPS}s",
+                True,
+                POWERUP_COLORS["rapid_fire"],
+            )
             screen.blit(rf_text, (20, y_offset))
             y_offset += 30
 
         if self.spread_shot_active:
-            ss_text = self.small_font.render(f"Spread Shot: {self.spread_shot_timer // FPS}s", True, POWERUP_COLORS['spread_shot'])
+            ss_text = self.small_font.render(
+                f"Spread Shot: {self.spread_shot_timer // FPS}s",
+                True,
+                POWERUP_COLORS["spread_shot"],
+            )
             screen.blit(ss_text, (20, y_offset))
             y_offset += 30
 
         if self.ship.has_shield:
-            shield_text = self.small_font.render(f"Shield: {self.ship.shield_timer // FPS}s", True, POWERUP_COLORS['shield'])
+            shield_text = self.small_font.render(
+                f"Shield: {self.ship.shield_timer // FPS}s",
+                True,
+                POWERUP_COLORS["shield"],
+            )
             screen.blit(shield_text, (20, y_offset))
             y_offset += 30
 
         if self.double_damage_active:
-            dd_text = self.small_font.render(f"Double Damage: {self.double_damage_timer // FPS}s", True, POWERUP_COLORS['double_damage'])
+            dd_text = self.small_font.render(
+                f"Double Damage: {self.double_damage_timer // FPS}s",
+                True,
+                POWERUP_COLORS["double_damage"],
+            )
             screen.blit(dd_text, (20, y_offset))
             y_offset += 30
 
         if self.magnet_active:
-            mag_text = self.small_font.render(f"Magnet: {self.magnet_timer // FPS}s", True, POWERUP_COLORS['magnet'])
+            mag_text = self.small_font.render(
+                f"Magnet: {self.magnet_timer // FPS}s", True, POWERUP_COLORS["magnet"]
+            )
             screen.blit(mag_text, (20, y_offset))
             y_offset += 30
 
         if self.time_slow_active:
-            ts_text = self.small_font.render(f"Time Slow: {self.time_slow_timer // FPS}s", True, POWERUP_COLORS['time_slow'])
+            ts_text = self.small_font.render(
+                f"Time Slow: {self.time_slow_timer // FPS}s",
+                True,
+                POWERUP_COLORS["time_slow"],
+            )
             screen.blit(ts_text, (20, y_offset))
             y_offset += 30
 
@@ -1411,39 +1646,62 @@ class Game:
             # Health bar background
             bar_x = (WIDTH - BOSS_HEALTHBAR_WIDTH) // 2
             bar_y = 60
-            pygame.draw.rect(screen, (50, 50, 50),
-                           (bar_x, bar_y, BOSS_HEALTHBAR_WIDTH, BOSS_HEALTHBAR_HEIGHT))
+            pygame.draw.rect(
+                screen,
+                (50, 50, 50),
+                (bar_x, bar_y, BOSS_HEALTHBAR_WIDTH, BOSS_HEALTHBAR_HEIGHT),
+            )
 
             # Health bar fill
             health_ratio = self.boss.health / self.boss.max_health
             health_width = int(BOSS_HEALTHBAR_WIDTH * health_ratio)
             health_color = (255, int(255 * health_ratio), int(255 * health_ratio))
-            pygame.draw.rect(screen, health_color,
-                           (bar_x, bar_y, health_width, BOSS_HEALTHBAR_HEIGHT))
+            pygame.draw.rect(
+                screen,
+                health_color,
+                (bar_x, bar_y, health_width, BOSS_HEALTHBAR_HEIGHT),
+            )
 
             # Health bar border
-            pygame.draw.rect(screen, (255, 255, 255),
-                           (bar_x, bar_y, BOSS_HEALTHBAR_WIDTH, BOSS_HEALTHBAR_HEIGHT), 2)
+            pygame.draw.rect(
+                screen,
+                (255, 255, 255),
+                (bar_x, bar_y, BOSS_HEALTHBAR_WIDTH, BOSS_HEALTHBAR_HEIGHT),
+                2,
+            )
 
             # Boss label
             boss_label = self.font.render("BOSS", True, BOSS_COLOR)
             screen.blit(boss_label, (bar_x - boss_label.get_width() - 10, bar_y - 5))
 
             # Health text
-            health_text = self.small_font.render(f"{self.boss.health}/{self.boss.max_health}", True, TEXT_COLOR)
-            screen.blit(health_text, (bar_x + BOSS_HEALTHBAR_WIDTH // 2 - health_text.get_width() // 2, bar_y + 2))
+            health_text = self.small_font.render(
+                f"{self.boss.health}/{self.boss.max_health}", True, TEXT_COLOR
+            )
+            screen.blit(
+                health_text,
+                (
+                    bar_x + BOSS_HEALTHBAR_WIDTH // 2 - health_text.get_width() // 2,
+                    bar_y + 2,
+                ),
+            )
 
         # Draw boss warning
         if self.boss_warning:
             warning_alpha = int(200 * abs(math.sin(self.boss_warning_timer / 10)))
             warning_surface = pygame.Surface((WIDTH, 100), pygame.SRCALPHA)
-            warning_text = self.font.render("WARNING! BOSS APPROACHING!", True, (255, 0, 0, warning_alpha))
-            warning_surface.blit(warning_text,
-                               (WIDTH // 2 - warning_text.get_width() // 2, 40))
+            warning_text = self.font.render(
+                "WARNING! BOSS APPROACHING!", True, (255, 0, 0, warning_alpha)
+            )
+            warning_surface.blit(
+                warning_text, (WIDTH // 2 - warning_text.get_width() // 2, 40)
+            )
             screen.blit(warning_surface, (0, HEIGHT // 2 - 50))
 
         # Draw controls
-        controls_text = self.small_font.render("WASD/Arrows: Move | SPACE: Shoot | P: Pause", True, TEXT_COLOR)
+        controls_text = self.small_font.render(
+            "WASD/Arrows: Move | SPACE: Shoot | P: Pause", True, TEXT_COLOR
+        )
         screen.blit(controls_text, (20, HEIGHT - 40))
 
     def draw_pause(self, screen):
@@ -1455,11 +1713,15 @@ class Game:
 
         # Pause text
         pause_text = self.font.render("PAUSED", True, PAUSE_COLOR)
-        screen.blit(pause_text, (WIDTH // 2 - pause_text.get_width() // 2, HEIGHT // 2 - 50))
+        screen.blit(
+            pause_text, (WIDTH // 2 - pause_text.get_width() // 2, HEIGHT // 2 - 50)
+        )
 
         # Instructions
         resume_text = self.small_font.render("Press P to resume", True, TEXT_COLOR)
-        screen.blit(resume_text, (WIDTH // 2 - resume_text.get_width() // 2, HEIGHT // 2 + 10))
+        screen.blit(
+            resume_text, (WIDTH // 2 - resume_text.get_width() // 2, HEIGHT // 2 + 10)
+        )
 
     def draw_game_over(self, screen):
         """Draw game over screen with name input."""
@@ -1470,60 +1732,86 @@ class Game:
 
         # Game over message
         game_over_text = self.font.render("GAME OVER!", True, GAME_OVER_COLOR)
-        screen.blit(game_over_text,
-                    (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - 80))
+        screen.blit(
+            game_over_text,
+            (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - 80),
+        )
 
         # Final score
-        final_score_text = self.font.render(f"Final Score: {self.score}", True, TEXT_COLOR)
-        screen.blit(final_score_text,
-                    (WIDTH // 2 - final_score_text.get_width() // 2, HEIGHT // 2 - 30))
+        final_score_text = self.font.render(
+            f"Final Score: {self.score}", True, TEXT_COLOR
+        )
+        screen.blit(
+            final_score_text,
+            (WIDTH // 2 - final_score_text.get_width() // 2, HEIGHT // 2 - 30),
+        )
 
         # Name input for new high score
         if self.name_input_active:
-            prompt_text = self.font.render("New High Score! Enter your name:", True, TEXT_COLOR)
-            screen.blit(prompt_text,
-                       (WIDTH // 2 - prompt_text.get_width() // 2, HEIGHT // 2 + 20))
+            prompt_text = self.font.render(
+                "New High Score! Enter your name:", True, TEXT_COLOR
+            )
+            screen.blit(
+                prompt_text,
+                (WIDTH // 2 - prompt_text.get_width() // 2, HEIGHT // 2 + 20),
+            )
 
             # Name input field
-            pygame.draw.rect(screen, (50, 50, 100),
-                           (WIDTH // 2 - 100, HEIGHT // 2 + 60, 200, 40))
+            pygame.draw.rect(
+                screen, (50, 50, 100), (WIDTH // 2 - 100, HEIGHT // 2 + 60, 200, 40)
+            )
             name_display = self.small_font.render(self.player_name, True, TEXT_COLOR)
             screen.blit(name_display, (WIDTH // 2 - 100 + 10, HEIGHT // 2 + 65))
 
             # Blinking cursor
             if pygame.time.get_ticks() % 1000 < 500:
                 cursor_x = WIDTH // 2 - 100 + 10 + name_display.get_width()
-                pygame.draw.line(screen, TEXT_COLOR,
-                               (cursor_x, HEIGHT // 2 + 65),
-                               (cursor_x, HEIGHT // 2 + 95), 2)
+                pygame.draw.line(
+                    screen,
+                    TEXT_COLOR,
+                    (cursor_x, HEIGHT // 2 + 65),
+                    (cursor_x, HEIGHT // 2 + 95),
+                    2,
+                )
 
             # Instructions
             enter_text = self.small_font.render("Press ENTER to save", True, TEXT_COLOR)
-            screen.blit(enter_text,
-                       (WIDTH // 2 - enter_text.get_width() // 2, HEIGHT // 2 + 110))
+            screen.blit(
+                enter_text,
+                (WIDTH // 2 - enter_text.get_width() // 2, HEIGHT // 2 + 110),
+            )
         else:
             # Instructions
             if self.score > self.high_score:
                 prompt_text = self.font.render("New High Score!", True, TEXT_COLOR)
-                screen.blit(prompt_text,
-                           (WIDTH // 2 - prompt_text.get_width() // 2, HEIGHT // 2 + 20))
+                screen.blit(
+                    prompt_text,
+                    (WIDTH // 2 - prompt_text.get_width() // 2, HEIGHT // 2 + 20),
+                )
             else:
                 restart_text = self.font.render("Press R to restart", True, TEXT_COLOR)
-                screen.blit(restart_text,
-                           (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2 + 20))
+                screen.blit(
+                    restart_text,
+                    (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2 + 20),
+                )
 
                 # Show high score info
                 if self.high_score_player:
                     hs_text = self.small_font.render(
                         f"High Score: {self.high_score} by {self.high_score_player}",
-                        True, TEXT_COLOR)
-                    screen.blit(hs_text,
-                               (WIDTH // 2 - hs_text.get_width() // 2, HEIGHT // 2 + 60))
+                        True,
+                        TEXT_COLOR,
+                    )
+                    screen.blit(
+                        hs_text,
+                        (WIDTH // 2 - hs_text.get_width() // 2, HEIGHT // 2 + 60),
+                    )
 
             # Exit instructions
             exit_text = self.small_font.render("Press ESC to exit", True, TEXT_COLOR)
-            screen.blit(exit_text,
-                       (WIDTH // 2 - exit_text.get_width() // 2, HEIGHT // 2 + 110))
+            screen.blit(
+                exit_text, (WIDTH // 2 - exit_text.get_width() // 2, HEIGHT // 2 + 110)
+            )
 
     def run(self):
         """Main game loop."""

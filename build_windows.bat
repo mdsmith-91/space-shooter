@@ -41,7 +41,10 @@ echo.
 REM Build the executable
 echo Building executable...
 echo This may take a few minutes...
-pyinstaller --onefile --windowed --name "SpaceShooter" src/main.py
+pyinstaller --onefile --windowed --name "SpaceShooter" --add-data "sounds;sounds" src/main.py
+echo.
+echo NOTE: If you don't have a sounds folder, the build will succeed
+echo       but the game will run without audio (which is fine!)
 echo.
 
 REM Check if build was successful

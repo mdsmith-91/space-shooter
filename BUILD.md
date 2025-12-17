@@ -41,13 +41,15 @@ pip install pyinstaller
 
 **Option A: One-file executable (easier distribution)**
 ```cmd
-pyinstaller --onefile --windowed --name "SpaceShooter" src/main.py
+pyinstaller --onefile --windowed --name "SpaceShooter" --add-data "sounds;sounds" src/main.py
 ```
 
 **Option B: One-folder (faster startup)**
 ```cmd
-pyinstaller --windowed --name "SpaceShooter" src/main.py
+pyinstaller --windowed --name "SpaceShooter" --add-data "sounds;sounds" src/main.py
 ```
+
+**Note:** The `--add-data "sounds;sounds"` flag includes sound effects and music in the executable. If you don't have a sounds folder, you can omit this flag - the game will run silently but otherwise work perfectly.
 
 **Flags explained:**
 - `--onefile` - Packages everything into a single .exe file
@@ -109,7 +111,7 @@ Push to GitHub or manually trigger the workflow. The .exe will be available as a
 ## Advanced: Custom Icon
 
 ```cmd
-pyinstaller --onefile --windowed --icon=icon.ico --name "SpaceShooter" src/main.py
+pyinstaller --onefile --windowed --icon=icon.ico --name "SpaceShooter" --add-data "sounds;sounds" src/main.py
 ```
 
 Create `icon.ico` from an image using an online converter.

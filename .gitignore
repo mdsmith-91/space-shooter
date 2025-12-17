@@ -36,12 +36,6 @@ env/
 # Game data
 high_score.txt
 
-# Sound files (user downloads their own)
-sounds/
-*.wav
-*.ogg
-*.mp3
-
 # PyInstaller
 *.spec
 

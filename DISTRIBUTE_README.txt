@@ -2,8 +2,9 @@
                         SPACE SHOOTER GAME
 ================================================================================
 
-A fast-paced space shooter where you control a ship, avoiding and shooting
-down asteroids while trying to achieve the highest score!
+An action-packed space shooter where you control a ship, blast asteroids,
+collect power-ups, and battle epic bosses while trying to achieve the
+highest score!
 
 ================================================================================
 HOW TO PLAY
@@ -11,9 +12,11 @@ HOW TO PLAY
 
 1. Double-click SpaceShooter.exe to start the game
 2. Use the controls below to navigate and shoot
-3. Avoid asteroids and shoot them to score points
-4. The game gets progressively harder as you survive longer
-5. Try to beat the high score!
+3. Destroy asteroids to score points and build combos
+4. Collect power-ups to enhance your ship
+5. Defeat bosses every 500 points for massive rewards
+6. You have 3 lives - use them wisely!
+7. Try to beat the high score!
 
 ================================================================================
 CONTROLS
@@ -25,20 +28,35 @@ S or DOWN ARROW  - Move ship down
 D or RIGHT ARROW - Move ship right
 
 SPACEBAR         - Shoot laser
+P                - Pause/Resume game
 
 R                - Restart game (after game over)
-ESC              - Exit game
+ESC              - Exit game (after game over)
 
 ================================================================================
 GAMEPLAY TIPS
 ================================================================================
 
+BASIC SURVIVAL:
 - Stay alert! Asteroids come from the right side of the screen
-- Shoot asteroids to destroy them and earn points
-- Your score increases the longer you survive
-- Each destroyed asteroid gives bonus points
+- You have 3 lives with brief invulnerability after each hit
+- Large and medium asteroids break into smaller pieces - clear them quickly!
 - The game speeds up as you progress - stay focused!
-- After game over, enter your name for the high score board
+
+POWER-UPS (collect the rotating colored squares):
+- Shield (Green) - Blocks one hit from any source
+- Rapid Fire (Yellow) - Shoot faster for 5 seconds
+- Spread Shot (Purple) - Fire 3 lasers at once
+- Double Damage (Pink) - Deal 2x damage and earn 2x points
+- Magnet (Purple) - Attract power-ups automatically
+- Time Slow (Blue) - Slow down asteroids
+- Nuke (Red) - Destroy everything on screen (rare!)
+
+SCORING STRATEGIES:
+- Build combos by destroying asteroids quickly (up to 8x multiplier!)
+- Boss fights every 500 points - watch for warnings!
+- Use power-ups strategically during boss encounters
+- High score board - enter your name after game over
 
 ================================================================================
 SYSTEM REQUIREMENTS

@@ -30,7 +30,7 @@ jobs:
 
     - name: Build executable
       run: |
-        pyinstaller --onefile --windowed --name "SpaceShooter" src/main.py
+        pyinstaller --onefile --windowed --name "SpaceShooter" --add-data "sounds;sounds" src/main.py
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
