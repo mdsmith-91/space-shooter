@@ -10,28 +10,47 @@ highest score!
 HOW TO PLAY
 ================================================================================
 
-1. Double-click SpaceShooter.exe to start the game
-2. Use the controls below to navigate and shoot
-3. Destroy asteroids to score points and build combos
-4. Collect power-ups to enhance your ship
-5. Defeat bosses every 500 points for massive rewards
-6. You have 3 lives - use them wisely!
-7. Try to beat the high score!
+MAIN MENU:
+- Navigate with W/S or Up/Down Arrow Keys
+- Press ENTER to select an option
+- Choose "Play" to start a new game
+- Choose "Highscores" to view the top 10 players
+- Choose "Exit" to quit
+
+IN GAME:
+1. Destroy asteroids to score points and build combos
+2. Collect power-ups to enhance your ship
+3. Defeat bosses every 500 points for massive rewards
+4. You have 3 lives - use them wisely!
+5. Try to make it into the top 10 leaderboard!
 
 ================================================================================
 CONTROLS
 ================================================================================
 
+MAIN MENU & HIGHSCORES:
+W/S or UP/DOWN   - Navigate menu options
+ENTER            - Select highlighted option
+ESC              - Return to main menu (from highscores)
+
+IN GAME:
 W or UP ARROW    - Move ship up
 A or LEFT ARROW  - Move ship left
 S or DOWN ARROW  - Move ship down
 D or RIGHT ARROW - Move ship right
-
 SPACEBAR         - Shoot laser
-P                - Pause/Resume game
+ESC              - Pause menu (Resume or Main Menu)
 
-R                - Restart game (after game over)
-ESC              - Exit game (after game over)
+PAUSE MENU:
+W/S or UP/DOWN   - Navigate pause options
+ENTER            - Select option (Resume or Main Menu)
+ESC              - Resume game
+
+GAME OVER:
+Type your name (if you made top 10)
+ENTER            - Submit high score
+R                - Restart game
+ESC              - Return to main menu
 
 ================================================================================
 GAMEPLAY TIPS
@@ -56,7 +75,8 @@ SCORING STRATEGIES:
 - Build combos by destroying asteroids quickly (up to 8x multiplier!)
 - Boss fights every 500 points - watch for warnings!
 - Use power-ups strategically during boss encounters
-- High score board - enter your name after game over
+- Top 10 leaderboard - enter your name if you qualify!
+- View your ranking in the Highscores menu from the main menu
 
 ================================================================================
 SYSTEM REQUIREMENTS

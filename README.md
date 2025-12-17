@@ -12,7 +12,14 @@ An action-packed pygame-based space shooter where you control a ship, blast aste
 - **Rotating asteroids**: Visual rotation effects with detailed crater graphics
 - **Progressive difficulty**: Game speeds up and spawns more asteroids as you survive longer
 - **Combo system**: Chain asteroid kills for score multipliers (up to 8x!)
-- **Pause/Resume**: Press P to pause the game
+- **Pause menu**: Press ESC to pause with options to Resume or return to Main Menu
+
+### Menu System & UI
+- **Main menu**: Professional title screen with Play, Highscores, and Exit options
+- **Top 10 leaderboard**: View the best players and their scores
+- **Pause menu**: Quick access to resume or return to main menu during gameplay
+- **Keyboard navigation**: Full WASD/Arrow key navigation throughout all menus
+- **Visual feedback**: Highlighted selections and smooth menu transitions
 
 ### Power-Ups
 Collect power-ups dropped by destroyed asteroids:
@@ -42,22 +49,34 @@ Collect power-ups dropped by destroyed asteroids:
 - **Boss warnings**: Special audio cue for boss encounters
 
 ### Persistence
-- **High score system**: Save your best score with your name
-- **Persistent storage**: High scores saved to `high_score.txt`
+- **Top 10 leaderboard**: Compete for a spot on the high score board
+- **Persistent storage**: High scores saved to `data/high_score.txt`
+- **Auto-save**: Scores automatically saved when you qualify for top 10
 
 ## How to Play
 
 **Run:** `python src/main.py`
 
+The game starts with a main menu where you can:
+- **Play** - Start a new game
+- **Highscores** - View the top 10 players
+- **Exit** - Quit the game
+
 **Controls:**
+
+*Main Menu & Highscores:*
+- `W`/`S` or `↑`/`↓` - Navigate options
+- `ENTER` - Select option
+- `ESC` - Return to menu (from highscores)
+
+*In Game:*
 - `W` / `↑` - Move ship up
 - `A` / `←` - Move ship left
 - `S` / `↓` - Move ship down
 - `D` / `→` - Move ship right
 - `SPACE` - Shoot laser
-- `P` - Pause/Resume game
+- `ESC` - Open pause menu (Resume or Main Menu)
 - `R` - Restart after game over
-- `ESC` - Exit game (when game over)
 
 **Gameplay Tips:**
 - **Combo chains**: Keep destroying asteroids quickly to build your combo multiplier
@@ -92,6 +111,8 @@ pip install -r requirements.txt
 ├── .github/
 │   └── workflows/
 │       └── build-windows.yml    # GitHub Actions build workflow
+├── data/                        # Game save data (auto-created)
+│   └── high_score.txt           # Top 10 high scores
 ├── sounds/                      # Sound effects and music (optional)
 │   ├── laser.wav
 │   ├── explosion.wav
@@ -102,12 +123,11 @@ pip install -r requirements.txt
 │   ├── boss_warning.wav
 │   └── music.wav
 ├── src/
-│   └── main.py                  # Main game file (1800+ lines)
+│   └── main.py                  # Main game file (2000+ lines)
 ├── BUILD.md                     # Build instructions for Windows .exe
 ├── build_windows.bat            # Automated Windows build script
 ├── CLAUDE.md                    # Project guidance for Claude Code
 ├── DISTRIBUTE_README.txt        # End-user instructions for .exe
-├── high_score.txt               # Persistent high score storage
 ├── requirements.txt             # Python dependencies (pygame-ce)
 └── README.md                    # This file
 ```
@@ -134,7 +154,9 @@ pip install -r requirements.txt
 - **Sound system**: Graceful degradation - game runs silently if sound files missing
 
 ### Data Persistence
-- **High score storage**: `{score}:{player_name}` format in `high_score.txt`
+- **High score storage**: Top 10 scores stored in `data/high_score.txt` (one per line)
+- **File format**: `{score}:{player_name}` per line, sorted descending
+- **Auto-creation**: `data/` directory created automatically on first run
 - **File handling**: Exception-safe I/O with fallback defaults
 
 ## Building for Distribution

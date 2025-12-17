@@ -126,7 +126,8 @@ SCREEN_SHAKE_DURATION = 10
 SCREEN_SHAKE_INTENSITY = 8
 
 # High score file
-HIGH_SCORE_FILE = "high_score.txt"
+DATA_DIR = "data"
+HIGH_SCORE_FILE = os.path.join(DATA_DIR, "high_score.txt")
 MAX_NAME_LENGTH = 15
 
 # =============================================================================
@@ -748,16 +749,24 @@ class Game:
         # Fonts
         self.font = pygame.font.SysFont(None, 36)
         self.small_font = pygame.font.SysFont(None, 24)
+        self.title_font = pygame.font.SysFont(None, 72)
+        self.large_font = pygame.font.SysFont(None, 48)
 
         # Game state
         self.running = True
+        self.game_state = "menu"  # "menu", "playing", "game_over", "highscores"
         self.game_over = False
         self.paused = False
         self.score = 0
-        self.high_score = 0
-        self.high_score_player = ""
+        self.high_scores = []  # List of (score, name) tuples
         self.player_name = ""
         self.name_input_active = False
+
+        # Menu state
+        self.menu_options = ["Play", "Highscores", "Exit"]
+        self.menu_selected = 0
+        self.pause_options = ["Resume", "Main Menu"]
+        self.pause_selected = 0
 
         # Game objects
         self.ship = Ship(SHIP_START_X, SHIP_START_Y)
@@ -805,9 +814,19 @@ class Game:
         self.init_sounds()
 
         # Initialize game
+        self.ensure_data_directory()
         self.load_high_score()
         self.create_stars()
         self.create_initial_asteroids()
+
+    def ensure_data_directory(self):
+        """Ensure the data directory exists."""
+        if not os.path.exists(DATA_DIR):
+            try:
+                os.makedirs(DATA_DIR)
+                print(f"✅ Created data directory: {DATA_DIR}")
+            except OSError as e:
+                print(f"⚠️  Could not create data directory: {e}")
 
     def init_sounds(self):
         """Initialize sound effects (requires sound files)."""
@@ -854,30 +873,48 @@ class Game:
                 sound.play()
 
     def load_high_score(self):
-        """Load high score from file."""
+        """Load top 10 high scores from file."""
+        self.high_scores = []
         if os.path.exists(HIGH_SCORE_FILE):
             try:
                 with open(HIGH_SCORE_FILE, "r") as f:
-                    content = f.read().strip()
-                    if content:
-                        parts = content.split(":", 1)
-                        if len(parts) == 2:
-                            self.high_score = int(parts[0])
-                            self.high_score_player = parts[1]
-                        else:
-                            self.high_score = int(content)
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            parts = line.split(":", 1)
+                            if len(parts) == 2:
+                                score = int(parts[0])
+                                name = parts[1]
+                                self.high_scores.append((score, name))
             except (FileNotFoundError, ValueError, IOError):
-                self.high_score = 0
+                pass
+
+        # Sort by score descending and keep top 10
+        self.high_scores.sort(reverse=True, key=lambda x: x[0])
+        self.high_scores = self.high_scores[:10]
 
     def save_high_score(self):
-        """Save high score to file."""
+        """Save high score to file and update top 10."""
+        # Add new score
+        self.high_scores.append((self.score, self.player_name))
+
+        # Sort by score descending and keep top 10
+        self.high_scores.sort(reverse=True, key=lambda x: x[0])
+        self.high_scores = self.high_scores[:10]
+
+        # Save to file
         try:
             with open(HIGH_SCORE_FILE, "w") as f:
-                f.write(f"{self.score}:{self.player_name}")
-            self.high_score = self.score
-            self.high_score_player = self.player_name
+                for score, name in self.high_scores:
+                    f.write(f"{score}:{name}\n")
         except (IOError, OSError):
             pass
+
+    def is_high_score(self):
+        """Check if current score qualifies for top 10."""
+        if len(self.high_scores) < 10:
+            return True
+        return self.score > self.high_scores[-1][0]
 
     def create_stars(self):
         """Create star background."""
@@ -941,53 +978,119 @@ class Game:
                 self.running = False
 
             if event.type == pygame.KEYDOWN:
-                # Pause game
-                if event.key == pygame.K_p and not self.game_over:
-                    self.paused = not self.paused
+                # Menu navigation
+                if self.game_state == "menu":
+                    if event.key in [pygame.K_w, pygame.K_UP]:
+                        self.menu_selected = (self.menu_selected - 1) % len(
+                            self.menu_options
+                        )
+                    elif event.key in [pygame.K_s, pygame.K_DOWN]:
+                        self.menu_selected = (self.menu_selected + 1) % len(
+                            self.menu_options
+                        )
+                    elif event.key == pygame.K_RETURN:
+                        self.handle_menu_selection()
 
-                # Restart game
-                if event.key == pygame.K_r and self.game_over:
-                    self.reset()
+                # Highscores screen
+                elif self.game_state == "highscores":
+                    if event.key == pygame.K_ESCAPE or event.key == pygame.K_RETURN:
+                        self.game_state = "menu"
 
-                # Shoot laser
-                elif (
-                    event.key == pygame.K_SPACE
-                    and not self.game_over
-                    and not self.paused
-                    and self.laser_cooldown == 0
-                ):
-                    self.shoot_laser()
+                # Playing game
+                elif self.game_state == "playing":
+                    # Pause menu navigation
+                    if self.paused and not self.game_over:
+                        if event.key in [pygame.K_w, pygame.K_UP]:
+                            self.pause_selected = (self.pause_selected - 1) % len(
+                                self.pause_options
+                            )
+                        elif event.key in [pygame.K_s, pygame.K_DOWN]:
+                            self.pause_selected = (self.pause_selected + 1) % len(
+                                self.pause_options
+                            )
+                        elif event.key == pygame.K_RETURN:
+                            self.handle_pause_selection()
+                        elif event.key == pygame.K_ESCAPE:
+                            self.paused = False
+                            self.pause_selected = 0
+                    # Pause game
+                    elif event.key == pygame.K_ESCAPE and not self.game_over:
+                        self.paused = True
+                        self.pause_selected = 0
 
-                # Submit name
-                elif (
-                    event.key == pygame.K_RETURN
-                    and self.game_over
-                    and self.name_input_active
-                ):
-                    self.name_input_active = False
-                    if self.score > self.high_score:
-                        self.save_high_score()
+                    # Shoot laser
+                    elif (
+                        event.key == pygame.K_SPACE
+                        and not self.game_over
+                        and not self.paused
+                        and self.laser_cooldown == 0
+                    ):
+                        self.shoot_laser()
 
-                # Backspace in name entry
-                elif (
-                    event.key == pygame.K_BACKSPACE
-                    and self.game_over
-                    and self.name_input_active
-                ):
-                    self.player_name = self.player_name[:-1]
+                    # Restart game
+                    elif event.key == pygame.K_r and self.game_over:
+                        self.reset()
 
-                # Exit game
-                elif event.key == pygame.K_ESCAPE and self.game_over:
-                    self.running = False
+                    # Exit to menu
+                    elif event.key == pygame.K_ESCAPE and self.game_over:
+                        self.game_state = "menu"
+                        self.game_over = False
 
-                # Type name
-                elif (
-                    self.game_over
-                    and self.name_input_active
-                    and len(self.player_name) < MAX_NAME_LENGTH
-                    and event.unicode.isprintable()
-                ):
-                    self.player_name += event.unicode
+                # Game over - name input
+                elif self.game_state == "game_over":
+                    # Submit name
+                    if event.key == pygame.K_RETURN and self.name_input_active:
+                        self.name_input_active = False
+                        if self.is_high_score():
+                            self.save_high_score()
+
+                    # Backspace in name entry
+                    elif event.key == pygame.K_BACKSPACE and self.name_input_active:
+                        self.player_name = self.player_name[:-1]
+
+                    # Exit to menu
+                    elif event.key == pygame.K_ESCAPE:
+                        self.game_state = "menu"
+                        self.game_over = False
+                        self.name_input_active = False
+
+                    # Restart game
+                    elif event.key == pygame.K_r and not self.name_input_active:
+                        self.game_state = "playing"
+                        self.reset()
+
+                    # Type name
+                    elif (
+                        self.name_input_active
+                        and len(self.player_name) < MAX_NAME_LENGTH
+                        and event.unicode.isprintable()
+                    ):
+                        self.player_name += event.unicode
+
+    def handle_menu_selection(self):
+        """Handle menu option selection."""
+        selected = self.menu_options[self.menu_selected]
+
+        if selected == "Play":
+            self.game_state = "playing"
+            self.reset()
+        elif selected == "Highscores":
+            self.game_state = "highscores"
+        elif selected == "Exit":
+            self.running = False
+
+    def handle_pause_selection(self):
+        """Handle pause menu option selection."""
+        selected = self.pause_options[self.pause_selected]
+
+        if selected == "Resume":
+            self.paused = False
+            self.pause_selected = 0
+        elif selected == "Main Menu":
+            self.paused = False
+            self.pause_selected = 0
+            self.game_state = "menu"
+            self.game_over = False
 
     def shoot_laser(self):
         """Fire laser(s) based on current power-ups."""
@@ -1141,9 +1244,14 @@ class Game:
 
     def update(self):
         """Update all game objects."""
+        # Only update if in playing state
+        if self.game_state != "playing":
+            return
+
         if self.game_over:
-            # Check if we should activate name input
-            if not self.name_input_active and self.score > self.high_score:
+            # Transition to game_over state
+            self.game_state = "game_over"
+            if self.is_high_score():
                 self.name_input_active = True
                 self.player_name = ""
             return
@@ -1438,6 +1546,8 @@ class Game:
                             self.boss = None
                             # Update last boss spawn score to prevent immediate re-spawn
                             self.last_boss_spawn_score = self.score
+                            # Exit loop - no more boss to hit
+                            break
                         else:
                             # Just hit, create impact
                             self.create_impact_particles(self.boss.x, self.boss.y)
@@ -1498,13 +1608,33 @@ class Game:
                 self.combo_timer = 0
 
         # Ship-powerup collisions
-        for powerup in self.powerups:
+        powerups_to_remove = []
+        for i, powerup in enumerate(self.powerups):
             if powerup.collides_with_ship(self.ship):
                 self.activate_powerup(powerup.type)
-                self.powerups.remove(powerup)
+                powerups_to_remove.append(i)
+        # Remove collected power-ups
+        self.powerups = [
+            powerup for i, powerup in enumerate(self.powerups) if i not in powerups_to_remove
+        ]
 
     def draw(self):
-        """Draw all game objects and UI."""
+        """Draw all game objects and UI based on game state."""
+        if self.game_state == "menu":
+            self.draw_menu()
+        elif self.game_state == "highscores":
+            self.draw_highscores()
+        elif self.game_state == "playing":
+            self.draw_game()
+        elif self.game_state == "game_over":
+            self.draw_game()  # Show game in background
+            self.draw_game_over_screen()
+
+        # Update display
+        pygame.display.flip()
+
+    def draw_game(self):
+        """Draw the actual game (playing state)."""
         # Create offset surface for screen shake
         offset_screen = pygame.Surface((WIDTH, HEIGHT))
         offset_screen.fill(BACKGROUND)
@@ -1547,15 +1677,173 @@ class Game:
         if self.paused:
             self.draw_pause(offset_screen)
 
-        # Draw game over screen
-        if self.game_over:
-            self.draw_game_over(offset_screen)
-
         # Blit offset screen with shake
         self.screen.blit(offset_screen, (self.shake_offset_x, self.shake_offset_y))
 
-        # Update display
-        pygame.display.flip()
+    def draw_menu(self):
+        """Draw the main menu."""
+        self.screen.fill(BACKGROUND)
+
+        # Draw animated stars in background
+        for star in self.stars:
+            star.update(paused=False)
+            star.draw(self.screen)
+
+        # Draw title
+        title_text = self.title_font.render("SPACE SHOOTER", True, TEXT_COLOR)
+        self.screen.blit(
+            title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 4)
+        )
+
+        # Draw subtitle
+        subtitle_text = self.small_font.render(
+            "Blast Asteroids • Collect Power-Ups • Battle Bosses", True, TEXT_COLOR
+        )
+        self.screen.blit(
+            subtitle_text, (WIDTH // 2 - subtitle_text.get_width() // 2, HEIGHT // 4 + 80)
+        )
+
+        # Draw menu options
+        menu_start_y = HEIGHT // 2 + 50
+        for i, option in enumerate(self.menu_options):
+            # Highlight selected option
+            if i == self.menu_selected:
+                color = COMBO_COLOR
+                text = self.large_font.render(f"> {option} <", True, color)
+            else:
+                color = TEXT_COLOR
+                text = self.font.render(option, True, color)
+
+            text_x = WIDTH // 2 - text.get_width() // 2
+            text_y = menu_start_y + i * 60
+            self.screen.blit(text, (text_x, text_y))
+
+        # Draw controls hint
+        controls_text = self.small_font.render(
+            "W/S or Up/Down Arrow Keys to navigate • ENTER to select", True, TEXT_COLOR
+        )
+        self.screen.blit(
+            controls_text,
+            (WIDTH // 2 - controls_text.get_width() // 2, HEIGHT - 60),
+        )
+
+    def draw_highscores(self):
+        """Draw the highscores screen."""
+        self.screen.fill(BACKGROUND)
+
+        # Draw animated stars in background
+        for star in self.stars:
+            star.update(paused=False)
+            star.draw(self.screen)
+
+        # Draw title
+        title_text = self.title_font.render("HIGH SCORES", True, COMBO_COLOR)
+        self.screen.blit(
+            title_text, (WIDTH // 2 - title_text.get_width() // 2, 50)
+        )
+
+        # Draw high scores
+        start_y = 150
+        if len(self.high_scores) == 0:
+            no_scores_text = self.font.render(
+                "No high scores yet!", True, TEXT_COLOR
+            )
+            self.screen.blit(
+                no_scores_text,
+                (WIDTH // 2 - no_scores_text.get_width() // 2, start_y + 100),
+            )
+        else:
+            for i, (score, name) in enumerate(self.high_scores):
+                # Rank
+                rank_text = self.font.render(f"{i + 1}.", True, TEXT_COLOR)
+                # Name
+                name_text = self.font.render(name, True, TEXT_COLOR)
+                # Score
+                score_text = self.font.render(str(score), True, COMBO_COLOR)
+
+                y_pos = start_y + i * 40
+                self.screen.blit(rank_text, (WIDTH // 4 - 30, y_pos))
+                self.screen.blit(name_text, (WIDTH // 4, y_pos))
+                self.screen.blit(score_text, (WIDTH // 2 + 100, y_pos))
+
+        # Draw back hint
+        back_text = self.small_font.render(
+            "Press ENTER or ESC to return", True, TEXT_COLOR
+        )
+        self.screen.blit(
+            back_text, (WIDTH // 2 - back_text.get_width() // 2, HEIGHT - 60)
+        )
+
+    def draw_game_over_screen(self):
+        """Draw game over overlay on top of game."""
+        # Semi-transparent overlay
+        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 180))
+        self.screen.blit(overlay, (0, 0))
+
+        # Game over message
+        game_over_text = self.font.render("GAME OVER!", True, GAME_OVER_COLOR)
+        self.screen.blit(
+            game_over_text,
+            (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - 80),
+        )
+
+        # Final score
+        final_score_text = self.font.render(
+            f"Final Score: {self.score}", True, TEXT_COLOR
+        )
+        self.screen.blit(
+            final_score_text,
+            (WIDTH // 2 - final_score_text.get_width() // 2, HEIGHT // 2 - 30),
+        )
+
+        # Name input for new high score
+        if self.name_input_active:
+            prompt_text = self.font.render(
+                "New High Score! Enter your name:", True, TEXT_COLOR
+            )
+            self.screen.blit(
+                prompt_text,
+                (WIDTH // 2 - prompt_text.get_width() // 2, HEIGHT // 2 + 20),
+            )
+
+            # Name input field
+            pygame.draw.rect(
+                self.screen, (50, 50, 100), (WIDTH // 2 - 100, HEIGHT // 2 + 60, 200, 40)
+            )
+            name_display = self.small_font.render(self.player_name, True, TEXT_COLOR)
+            self.screen.blit(name_display, (WIDTH // 2 - 100 + 10, HEIGHT // 2 + 65))
+
+            # Blinking cursor
+            if pygame.time.get_ticks() % 1000 < 500:
+                cursor_x = WIDTH // 2 - 100 + 10 + name_display.get_width()
+                pygame.draw.line(
+                    self.screen,
+                    TEXT_COLOR,
+                    (cursor_x, HEIGHT // 2 + 65),
+                    (cursor_x, HEIGHT // 2 + 95),
+                    2,
+                )
+
+            # Instructions
+            enter_text = self.small_font.render("Press ENTER to save", True, TEXT_COLOR)
+            self.screen.blit(
+                enter_text,
+                (WIDTH // 2 - enter_text.get_width() // 2, HEIGHT // 2 + 110),
+            )
+        else:
+            # Instructions
+            restart_text = self.font.render("Press R to restart", True, TEXT_COLOR)
+            self.screen.blit(
+                restart_text,
+                (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2 + 20),
+            )
+
+            # Exit to menu hint
+            menu_text = self.small_font.render("Press ESC for menu", True, TEXT_COLOR)
+            self.screen.blit(
+                menu_text, (WIDTH // 2 - menu_text.get_width() // 2, HEIGHT // 2 + 60)
+            )
 
     def draw_ui(self, screen):
         """Draw score and UI elements."""
@@ -1563,16 +1851,17 @@ class Game:
         score_text = self.font.render(f"Score: {self.score}", True, TEXT_COLOR)
         screen.blit(score_text, (20, 20))
 
-        # Draw high score
-        high_score_text = self.font.render(
-            f"High Score: {self.high_score}", True, TEXT_COLOR
-        )
-        screen.blit(high_score_text, (WIDTH - high_score_text.get_width() - 20, 20))
+        # Draw high score (top score from leaderboard)
+        if self.high_scores:
+            high_score, high_score_player = self.high_scores[0]
+            high_score_text = self.font.render(
+                f"High Score: {high_score}", True, TEXT_COLOR
+            )
+            screen.blit(high_score_text, (WIDTH - high_score_text.get_width() - 20, 20))
 
-        # Draw high score player name
-        if self.high_score_player:
+            # Draw high score player name
             player_text = self.small_font.render(
-                f"By: {self.high_score_player}", True, TEXT_COLOR
+                f"By: {high_score_player}", True, TEXT_COLOR
             )
             screen.blit(player_text, (WIDTH - player_text.get_width() - 20, 50))
 
@@ -1700,118 +1989,46 @@ class Game:
 
         # Draw controls
         controls_text = self.small_font.render(
-            "WASD/Arrows: Move | SPACE: Shoot | P: Pause", True, TEXT_COLOR
+            "WASD/Arrows: Move | SPACE: Shoot | ESC: Pause", True, TEXT_COLOR
         )
         screen.blit(controls_text, (20, HEIGHT - 40))
 
     def draw_pause(self, screen):
-        """Draw pause overlay."""
-        # Semi-transparent overlay
-        overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 128))
-        screen.blit(overlay, (0, 0))
-
-        # Pause text
-        pause_text = self.font.render("PAUSED", True, PAUSE_COLOR)
-        screen.blit(
-            pause_text, (WIDTH // 2 - pause_text.get_width() // 2, HEIGHT // 2 - 50)
-        )
-
-        # Instructions
-        resume_text = self.small_font.render("Press P to resume", True, TEXT_COLOR)
-        screen.blit(
-            resume_text, (WIDTH // 2 - resume_text.get_width() // 2, HEIGHT // 2 + 10)
-        )
-
-    def draw_game_over(self, screen):
-        """Draw game over screen with name input."""
+        """Draw pause overlay with menu."""
         # Semi-transparent overlay
         overlay = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         overlay.fill((0, 0, 0, 180))
         screen.blit(overlay, (0, 0))
 
-        # Game over message
-        game_over_text = self.font.render("GAME OVER!", True, GAME_OVER_COLOR)
+        # Pause text
+        pause_text = self.large_font.render("PAUSED", True, PAUSE_COLOR)
         screen.blit(
-            game_over_text,
-            (WIDTH // 2 - game_over_text.get_width() // 2, HEIGHT // 2 - 80),
+            pause_text, (WIDTH // 2 - pause_text.get_width() // 2, HEIGHT // 2 - 100)
         )
 
-        # Final score
-        final_score_text = self.font.render(
-            f"Final Score: {self.score}", True, TEXT_COLOR
-        )
-        screen.blit(
-            final_score_text,
-            (WIDTH // 2 - final_score_text.get_width() // 2, HEIGHT // 2 - 30),
-        )
-
-        # Name input for new high score
-        if self.name_input_active:
-            prompt_text = self.font.render(
-                "New High Score! Enter your name:", True, TEXT_COLOR
-            )
-            screen.blit(
-                prompt_text,
-                (WIDTH // 2 - prompt_text.get_width() // 2, HEIGHT // 2 + 20),
-            )
-
-            # Name input field
-            pygame.draw.rect(
-                screen, (50, 50, 100), (WIDTH // 2 - 100, HEIGHT // 2 + 60, 200, 40)
-            )
-            name_display = self.small_font.render(self.player_name, True, TEXT_COLOR)
-            screen.blit(name_display, (WIDTH // 2 - 100 + 10, HEIGHT // 2 + 65))
-
-            # Blinking cursor
-            if pygame.time.get_ticks() % 1000 < 500:
-                cursor_x = WIDTH // 2 - 100 + 10 + name_display.get_width()
-                pygame.draw.line(
-                    screen,
-                    TEXT_COLOR,
-                    (cursor_x, HEIGHT // 2 + 65),
-                    (cursor_x, HEIGHT // 2 + 95),
-                    2,
-                )
-
-            # Instructions
-            enter_text = self.small_font.render("Press ENTER to save", True, TEXT_COLOR)
-            screen.blit(
-                enter_text,
-                (WIDTH // 2 - enter_text.get_width() // 2, HEIGHT // 2 + 110),
-            )
-        else:
-            # Instructions
-            if self.score > self.high_score:
-                prompt_text = self.font.render("New High Score!", True, TEXT_COLOR)
-                screen.blit(
-                    prompt_text,
-                    (WIDTH // 2 - prompt_text.get_width() // 2, HEIGHT // 2 + 20),
-                )
+        # Draw pause menu options
+        menu_start_y = HEIGHT // 2
+        for i, option in enumerate(self.pause_options):
+            # Highlight selected option
+            if i == self.pause_selected:
+                color = COMBO_COLOR
+                text = self.large_font.render(f"> {option} <", True, color)
             else:
-                restart_text = self.font.render("Press R to restart", True, TEXT_COLOR)
-                screen.blit(
-                    restart_text,
-                    (WIDTH // 2 - restart_text.get_width() // 2, HEIGHT // 2 + 20),
-                )
+                color = TEXT_COLOR
+                text = self.font.render(option, True, color)
 
-                # Show high score info
-                if self.high_score_player:
-                    hs_text = self.small_font.render(
-                        f"High Score: {self.high_score} by {self.high_score_player}",
-                        True,
-                        TEXT_COLOR,
-                    )
-                    screen.blit(
-                        hs_text,
-                        (WIDTH // 2 - hs_text.get_width() // 2, HEIGHT // 2 + 60),
-                    )
+            text_x = WIDTH // 2 - text.get_width() // 2
+            text_y = menu_start_y + i * 60
+            screen.blit(text, (text_x, text_y))
 
-            # Exit instructions
-            exit_text = self.small_font.render("Press ESC to exit", True, TEXT_COLOR)
-            screen.blit(
-                exit_text, (WIDTH // 2 - exit_text.get_width() // 2, HEIGHT // 2 + 110)
-            )
+        # Controls hint
+        controls_text = self.small_font.render(
+            "W/S or Up/Down Arrow Keys • ENTER to select • ESC to resume", True, TEXT_COLOR
+        )
+        screen.blit(
+            controls_text, (WIDTH // 2 - controls_text.get_width() // 2, HEIGHT - 80)
+        )
+
 
     def run(self):
         """Main game loop."""

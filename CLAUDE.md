@@ -29,10 +29,16 @@ python src/main.py
 ```
 
 **Controls**:
+
+*Main Menu:*
+- W/S or ↑/↓: Navigate menu
+- ENTER: Select option
+
+*In Game:*
 - WASD or Arrow keys: Move ship
 - SPACE: Shoot laser
+- ESC: Pause/Resume (shows pause menu)
 - R: Restart after game over
-- ESC: Exit game
 
 ## Code Architecture
 
@@ -42,26 +48,35 @@ python src/main.py
 - Rendering (draw stars, ship, asteroids, lasers, explosions, UI)
 
 **Key Components**:
-- **Ship**: Player-controlled spaceship with WASD movement
-- **Asteroids**: Randomly generated obstacles that move from right to left
-- **Lasers**: Projectiles fired by the player (SPACE key) that destroy asteroids
-- **Explosions**: Visual effects when asteroids are destroyed
+- **Ship**: Player-controlled spaceship with WASD/arrow key movement
+- **Asteroids**: Randomly generated obstacles that break into smaller pieces
+- **Lasers**: Projectiles fired by the player that destroy asteroids
+- **Bosses**: Epic boss enemies that appear every 500 points
+- **Power-ups**: 7 types (shield, rapid fire, spread shot, double damage, magnet, time slow, nuke)
+- **Explosions**: Visual effects with particle systems
 - **Stars**: Parallax scrolling background for visual depth
-- **High Score System**: Persistent storage in `high_score.txt` with player name
+- **Menu System**: Main menu with Play, Highscores, and Exit options
+- **High Score System**: Top 10 leaderboard stored in `data/high_score.txt`
 
 **Collision Detection**:
 - Ship-asteroid: Circular collision detection using distance formula
 - Laser-asteroid: Rectangle-based collision detection
 
 **State Management**:
-- `game_over`: Boolean flag for game state
+- `game_state`: Tracks current screen ("menu", "playing", "game_over", "highscores")
+- `game_over`: Boolean flag for game over state
+- `paused`: Boolean flag for pause state
 - `name_input_active`: Controls high score name entry flow
-- High score persisted to file format: `{score}:{player_name}`
+- Power-up timers and states for all active power-ups
+- Combo system with timeout tracking
 
 ## File Persistence
 
-- `high_score.txt`: Stores high score and player name in format `{score}:{player_name}`
-- The game reads this file on startup and writes to it when a new high score is achieved
+- `data/high_score.txt`: Stores top 10 high scores, one per line
+- Format: `{score}:{player_name}` (e.g., "14455:Michael")
+- The `data/` directory is auto-created on first run
+- Scores are automatically sorted and limited to top 10
+- File is read on startup and written when a new high score qualifies
 
 ## Development Notes
 
