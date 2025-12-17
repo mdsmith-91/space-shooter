@@ -1,43 +1,33 @@
-# Python Learning Projects
+# Space Shooter Game
 
-A collection of Python projects for learning and practice, featuring a space shooter game and a GUI calculator.
-
-## Projects
-
-### 1. Ship Obstacle Avoidance Game
 A pygame-based space shooter where you control a ship, avoiding and shooting down asteroids.
 
-**Features:**
+## Features
+
 - WASD movement controls
-- Laser shooting mechanics
-- Explosion effects
-- Scrolling star field background
+- Laser shooting mechanics with spacebar
+- Explosion effects when asteroids are destroyed
+- Parallax scrolling star field background
 - High score system with name entry
-- Progressive difficulty
+- Progressive difficulty as you survive longer
+
+## How to Play
 
 **Run:** `python src/main.py`
 
 **Controls:**
-- `WASD` - Move ship
+- `W` / `↑` - Move ship up
+- `A` / `←` - Move ship left
+- `S` / `↓` - Move ship down
+- `D` / `→` - Move ship right
 - `SPACE` - Shoot laser
 - `R` - Restart after game over
 - `ESC` - Exit game
 
-### 2. GUI Calculator
-A tkinter-based calculator with a blue themed interface.
-
-**Features:**
-- Basic arithmetic operations (+, -, ×, ÷)
-- Percentage calculations
-- Sign toggle
-- Clear function
-
-**Run:** `python gui_calculator.py`
-
 ## Setup
 
 ### Prerequisites
-- Python 3.14.2 (or compatible version)
+- Python 3.8+ (developed with Python 3.14.2)
 
 ### Installation
 
@@ -56,13 +46,16 @@ pip install -r requirements.txt
 
 ```
 .
+├── .github/
+│   └── workflows/
+│       └── build-windows.yml    # GitHub Actions build workflow
 ├── src/
-│   └── main.py          # Space shooter game
-├── gui_calculator.py    # Calculator application
-├── high_score.txt       # Game high score storage
-├── requirements.txt     # Python dependencies
-├── CLAUDE.md           # AI assistant instructions
-└── README.md           # This file
+│   └── main.py                  # Space shooter game
+├── BUILD.md                     # Build instructions
+├── build_windows.bat            # Windows build script
+├── DISTRIBUTE_README.txt        # Instructions for end users
+├── requirements.txt             # Python dependencies
+└── README.md                    # This file
 ```
 
 ## Technical Details
@@ -72,11 +65,7 @@ pip install -r requirements.txt
 - Circular collision detection for ship-asteroid interactions
 - Rectangle-based collision for laser-asteroid hits
 - Persistent high score storage in `high_score.txt`
-
-### Calculator Implementation
-- Single class design using tkinter
-- Immediate execution model (non-RPN)
-- State management for operations and display
+- Parallax scrolling background for visual depth
 
 ## Building for Distribution
 
@@ -97,8 +86,8 @@ Push to GitHub and the workflow will automatically build Windows executables for
 ## Development
 
 Built with:
-- pygame-ce (Community Edition)
-- tkinter (included with Python)
+- **pygame-ce** (Community Edition) - Game engine and graphics
+- **Python 3.14.2** - Programming language
 
 ## License
 
