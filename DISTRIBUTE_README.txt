@@ -74,6 +74,7 @@ POWER-UPS (collect the rotating colored squares):
 SCORING STRATEGIES:
 - Build combos by destroying asteroids quickly (up to 8x multiplier!)
 - Boss fights every 500 points - watch for warnings!
+- Bosses stay on screen until defeated - you must destroy them to continue!
 - Use power-ups strategically during boss encounters
 - Top 10 leaderboard - enter your name if you qualify!
 - View your ranking in the Highscores menu from the main menu

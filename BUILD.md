@@ -49,7 +49,7 @@ pyinstaller --onefile --windowed --name "SpaceShooter" --add-data "sounds;sounds
 pyinstaller --windowed --name "SpaceShooter" --add-data "sounds;sounds" src/main.py
 ```
 
-**Note:** The `--add-data "sounds;sounds"` flag includes sound effects and music in the executable. If you don't have a sounds folder, you can omit this flag - the game will run silently but otherwise work perfectly.
+**Note:** The `--add-data "sounds;sounds"` flag includes sound effects and music in the executable. The game uses a PyInstaller-compatible `resource_path()` helper function to properly locate sound files in bundled executables. If you don't have a sounds folder, you can omit this flag - the game will run silently but otherwise work perfectly.
 
 **Flags explained:**
 - `--onefile` - Packages everything into a single .exe file
@@ -98,6 +98,11 @@ Push to GitHub or manually trigger the workflow. The .exe will be available as a
 - Make sure pygame-ce is properly bundled
 - Try `--console` flag to see error messages
 - Add hidden imports: `--hidden-import=pygame`
+
+### Issue: No sound in bundled .exe
+- **FIXED**: The game now includes a `resource_path()` helper that properly locates resources
+- Ensure `--add-data "sounds;sounds"` is in the PyInstaller command
+- The sounds folder must exist and be properly included in the build
 
 ### Issue: Large file size
 - Normal for PyInstaller (30-50 MB for pygame apps)

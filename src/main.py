@@ -7,6 +7,22 @@ import math
 # Initialize pygame
 pygame.init()
 
+
+# =============================================================================
+# RESOURCE PATH HELPER (for PyInstaller bundled executables)
+# =============================================================================
+
+def resource_path(relative_path):
+    """Get absolute path to resource, works for dev and for PyInstaller."""
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except AttributeError:
+        # Running in development mode
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 # =============================================================================
 # CONSTANTS
 # =============================================================================
@@ -433,8 +449,14 @@ class Boss:
     """Boss enemy with health, special movement, and visual effects."""
 
     def __init__(self, pattern="sine"):
-        self.x = WIDTH + BOSS_RADIUS
-        self.y = HEIGHT // 2
+        # Center position for movement patterns
+        self.center_x = WIDTH - 150  # Position on right side of screen
+        self.center_y = HEIGHT // 2
+
+        # Start at center position
+        self.x = self.center_x
+        self.y = self.center_y
+
         self.radius = BOSS_RADIUS
         self.health = BOSS_HEALTH
         self.max_health = BOSS_HEALTH
@@ -444,7 +466,6 @@ class Boss:
         # Movement pattern
         self.pattern = pattern  # 'sine', 'circle', 'figure8'
         self.time = 0
-        self.center_y = HEIGHT // 2
 
         # Visual effects
         self.angle = 0
@@ -456,29 +477,31 @@ class Boss:
         self.angle += 1
         self.glow_pulse = (self.glow_pulse + 5) % 360
 
-        # Move left
-        self.x -= self.speed
-
-        # Apply movement pattern
+        # Apply movement pattern (removed continuous leftward movement)
         if self.pattern == "sine":
-            # Sinusoidal wave
-            amplitude = 150
+            # Sinusoidal wave - oscillate horizontally and vertically
+            amplitude_y = 150
+            amplitude_x = 80
             frequency = 0.02
-            self.y = self.center_y + amplitude * math.sin(self.time * frequency)
+            self.y = self.center_y + amplitude_y * math.sin(self.time * frequency)
+            self.x = self.center_x + amplitude_x * math.cos(self.time * frequency * 0.5)
 
         elif self.pattern == "circle":
             # Circular motion
             radius_movement = 120
+            self.x = self.center_x + radius_movement * math.cos(self.time * 0.03)
             self.y = self.center_y + radius_movement * math.sin(self.time * 0.03)
 
         elif self.pattern == "figure8":
             # Figure-8 pattern
             amplitude = 100
+            self.x = self.center_x + amplitude * math.cos(self.time * 0.02)
             self.y = self.center_y + amplitude * math.sin(self.time * 0.04) * math.cos(
                 self.time * 0.02
             )
 
         # Keep within screen bounds
+        self.x = max(self.radius, min(WIDTH - self.radius, self.x))
         self.y = max(self.radius, min(HEIGHT - self.radius, self.y))
 
     def draw(self, screen):
@@ -843,7 +866,9 @@ class Game:
         loaded_count = 0
         for sound_name, sound_path in sound_files.items():
             try:
-                self.sounds[sound_name] = pygame.mixer.Sound(sound_path)
+                # Use resource_path to find sounds in both dev and bundled .exe
+                full_path = resource_path(sound_path)
+                self.sounds[sound_name] = pygame.mixer.Sound(full_path)
                 loaded_count += 1
             except (FileNotFoundError, pygame.error):
                 # Sound file not found, skip it
@@ -856,7 +881,9 @@ class Game:
 
             # Try to load background music
             try:
-                pygame.mixer.music.load("sounds/music.wav")
+                # Use resource_path to find music in both dev and bundled .exe
+                music_path = resource_path("sounds/music.wav")
+                pygame.mixer.music.load(music_path)
                 pygame.mixer.music.set_volume(1.0)  # 100% volume for background
                 pygame.mixer.music.play(-1)  # Loop forever
                 print("✅ Background music loaded")
@@ -1366,9 +1393,7 @@ class Game:
         # Update boss
         if self.boss:
             self.boss.update()
-            # Remove boss if it goes off-screen
-            if self.boss.is_off_screen():
-                self.boss = None
+            # Boss now stays on screen until defeated - no off-screen removal
 
         # Update power-ups
         for powerup in self.powerups:

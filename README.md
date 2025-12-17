@@ -33,8 +33,9 @@ Collect power-ups dropped by destroyed asteroids:
 
 ### Epic Boss Fights
 - **Boss warnings**: Screen alerts before boss arrival
-- **Multiple patterns**: Bosses use sine wave, circular, or figure-8 movement
+- **Multiple patterns**: Bosses use sine wave, circular, or figure-8 movement that keeps them on-screen
 - **Health bars**: Track boss health with visual indicators
+- **Stay and fight**: Bosses remain on screen until defeated - no running away!
 - **Big rewards**: Defeating bosses grants 500 points and guaranteed power-ups
 
 ### Visual Effects
@@ -143,15 +144,17 @@ pip install -r requirements.txt
 - **State management**: Game state, power-up timers, combo system, boss spawning
 - **Particle system**: Dynamic particle generation for visual effects
 - **Screen effects**: Camera shake with configurable intensity and duration
+- **Resource loading**: PyInstaller-compatible `resource_path()` helper for bundled executables
 
 ### Key Game Mechanics
 - **Asteroid breaking**: Large/medium asteroids split into 2-3 smaller pieces with spread velocities
-- **Boss spawn system**: Bosses appear every 500 points with warning sequences
+- **Boss spawn system**: Bosses appear every 500 points with warning sequences; stay on screen until defeated
+- **Boss movement**: Bosses orbit around a center position using sine, circular, or figure-8 patterns
 - **Combo multipliers**: 1x → 2x → 3x → 5x → 8x scoring based on kill chains
 - **Power-up duration**: Most power-ups last 5 seconds (300 frames at 60 FPS)
 - **Difficulty scaling**: Asteroid spawn rate and speed increase over time (max 3x)
 - **Invulnerability**: 2 seconds (120 frames) after taking damage
-- **Sound system**: Graceful degradation - game runs silently if sound files missing
+- **Sound system**: Graceful degradation with PyInstaller support - game runs silently if sound files missing
 
 ### Data Persistence
 - **High score storage**: Top 10 scores stored in `data/high_score.txt` (one per line)

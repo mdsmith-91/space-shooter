@@ -51,7 +51,9 @@ python src/main.py
 - **Ship**: Player-controlled spaceship with WASD/arrow key movement
 - **Asteroids**: Randomly generated obstacles that break into smaller pieces
 - **Lasers**: Projectiles fired by the player that destroy asteroids
-- **Bosses**: Epic boss enemies that appear every 500 points
+- **Bosses**: Epic boss enemies that appear every 500 points and stay on screen until defeated
+  - Three movement patterns: sine wave, circular, and figure-8
+  - Orbit around a center position instead of moving off-screen
 - **Power-ups**: 7 types (shield, rapid fire, spread shot, double damage, magnet, time slow, nuke)
 - **Explosions**: Visual effects with particle systems
 - **Stars**: Parallax scrolling background for visual depth
@@ -83,6 +85,11 @@ python src/main.py
 - pygame uses a standard game loop pattern: event handling → update → render → clock tick
 - The game includes a GitHub Actions workflow for automated Windows .exe builds
 - PyInstaller is used for creating standalone executables
+- **Resource Loading**: Uses `resource_path()` helper function (lines 15-24) to support both development and PyInstaller bundled executables
+  - In development: Loads resources from current directory
+  - In bundled .exe: Loads from PyInstaller's temporary extraction folder (`sys._MEIPASS`)
+  - Critical for sound files to work in Windows .exe builds
+  - All resource paths should use `resource_path("relative/path")` instead of direct paths
 
 ## Building for Distribution
 
