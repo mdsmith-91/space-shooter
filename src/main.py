@@ -97,6 +97,20 @@ STAR_MAX_BRIGHTNESS = 255
 # Explosion settings
 EXPLOSION_MAX_SIZE = 20
 EXPLOSION_INITIAL_SIZE = 10
+BOSS_EXPLOSION_MAX_SIZE = 60
+BOSS_EXPLOSION_DURATION = 60  # frames
+
+# Boss settings
+BOSS_RADIUS = 80
+BOSS_HEALTH = 15
+BOSS_SPEED = 2
+BOSS_SPAWN_INTERVAL = 2000  # Every 2000 points
+BOSS_COLOR = (200, 50, 50)
+BOSS_DETAIL_COLOR = (150, 30, 30)
+BOSS_GLOW_COLOR = (255, 100, 100)
+BOSS_HEALTHBAR_WIDTH = 400
+BOSS_HEALTHBAR_HEIGHT = 20
+BOSS_WARNING_DURATION = 180  # 3 seconds at 60 FPS
 
 # Combo settings
 COMBO_TIMEOUT = 120  # 2 seconds to maintain combo
@@ -363,6 +377,109 @@ class Asteroid:
         return children
 
 
+class Boss:
+    """Boss enemy with health, special movement, and visual effects."""
+
+    def __init__(self, pattern='sine'):
+        self.x = WIDTH + BOSS_RADIUS
+        self.y = HEIGHT // 2
+        self.radius = BOSS_RADIUS
+        self.health = BOSS_HEALTH
+        self.max_health = BOSS_HEALTH
+        self.speed = BOSS_SPEED
+        self.points = 500  # Big score for defeating boss
+
+        # Movement pattern
+        self.pattern = pattern  # 'sine', 'circle', 'figure8'
+        self.time = 0
+        self.center_y = HEIGHT // 2
+
+        # Visual effects
+        self.angle = 0
+        self.glow_pulse = 0
+
+    def update(self):
+        """Update boss position based on movement pattern."""
+        self.time += 1
+        self.angle += 1
+        self.glow_pulse = (self.glow_pulse + 5) % 360
+
+        # Move left
+        self.x -= self.speed
+
+        # Apply movement pattern
+        if self.pattern == 'sine':
+            # Sinusoidal wave
+            amplitude = 150
+            frequency = 0.02
+            self.y = self.center_y + amplitude * math.sin(self.time * frequency)
+
+        elif self.pattern == 'circle':
+            # Circular motion
+            radius_movement = 120
+            self.y = self.center_y + radius_movement * math.sin(self.time * 0.03)
+
+        elif self.pattern == 'figure8':
+            # Figure-8 pattern
+            amplitude = 100
+            self.y = self.center_y + amplitude * math.sin(self.time * 0.04) * math.cos(self.time * 0.02)
+
+        # Keep within screen bounds
+        self.y = max(self.radius, min(HEIGHT - self.radius, self.y))
+
+    def draw(self, screen):
+        """Draw the boss with special effects."""
+        # Pulsing glow effect
+        glow_intensity = int(50 + 30 * math.sin(math.radians(self.glow_pulse)))
+        glow_color = (
+            min(255, BOSS_GLOW_COLOR[0] + glow_intensity),
+            min(255, BOSS_GLOW_COLOR[1] + glow_intensity // 2),
+            min(255, BOSS_GLOW_COLOR[2] + glow_intensity // 2)
+        )
+
+        # Draw glow rings
+        for i in range(3):
+            glow_radius = self.radius + 10 + i * 8
+            alpha = 80 - i * 25
+            s = pygame.Surface((glow_radius * 2, glow_radius * 2), pygame.SRCALPHA)
+            pygame.draw.circle(s, (*glow_color, alpha), (glow_radius, glow_radius), glow_radius, 3)
+            screen.blit(s, (int(self.x - glow_radius), int(self.y - glow_radius)))
+
+        # Main boss body (darker red)
+        pygame.draw.circle(screen, BOSS_COLOR, (int(self.x), int(self.y)), self.radius)
+
+        # Rotating details
+        for i in range(8):
+            detail_angle = self.angle + (i * 45)
+            detail_dist = self.radius * 0.7
+            detail_x = self.x + detail_dist * math.cos(math.radians(detail_angle))
+            detail_y = self.y + detail_dist * math.sin(math.radians(detail_angle))
+            pygame.draw.circle(screen, BOSS_DETAIL_COLOR, (int(detail_x), int(detail_y)), self.radius // 4)
+
+        # Center core (pulsing)
+        core_size = int(self.radius // 3 + 5 * math.sin(math.radians(self.glow_pulse)))
+        pygame.draw.circle(screen, glow_color, (int(self.x), int(self.y)), core_size)
+
+        # Outer ring
+        pygame.draw.circle(screen, BOSS_DETAIL_COLOR, (int(self.x), int(self.y)), self.radius, 4)
+
+    def take_damage(self):
+        """Boss takes damage from laser hit."""
+        self.health -= 1
+        return self.health <= 0  # Returns True if defeated
+
+    def is_off_screen(self):
+        """Check if boss has moved off the left side."""
+        return self.x < -self.radius
+
+    def collides_with_ship(self, ship):
+        """Check collision with ship."""
+        ship_center = ship.get_center()
+        distance_squared = (ship_center[0] - self.x) ** 2 + (ship_center[1] - self.y) ** 2
+        collision_radius = self.radius + ship.width // 2
+        return distance_squared < collision_radius ** 2
+
+
 class Laser:
     """Laser projectile fired by the ship."""
 
@@ -399,6 +516,13 @@ class Laser:
                 self.x + self.width > asteroid.x - asteroid.radius and
                 self.y < asteroid.y + asteroid.radius and
                 self.y + self.height > asteroid.y - asteroid.radius)
+
+    def collides_with_boss(self, boss):
+        """Check collision with boss using rectangle-circle collision."""
+        return (self.x < boss.x + boss.radius and
+                self.x + self.width > boss.x - boss.radius and
+                self.y < boss.y + boss.radius and
+                self.y + self.height > boss.y - boss.radius)
 
 
 class PowerUp:
@@ -565,6 +689,9 @@ class Game:
         self.stars = []
         self.powerups = []
         self.particles = []
+        self.boss = None
+        self.boss_warning = False
+        self.boss_warning_timer = 0
 
         # Timers and counters
         self.laser_cooldown = 0
@@ -674,6 +801,9 @@ class Game:
         self.explosions = []
         self.powerups = []
         self.particles = []
+        self.boss = None
+        self.boss_warning = False
+        self.boss_warning_timer = 0
         self.score = 0
         self.game_over = False
         self.paused = False
@@ -855,6 +985,23 @@ class Game:
         if self.difficulty_timer % DIFFICULTY_INCREASE_INTERVAL == 0:
             self.difficulty_level = min(3.0, self.difficulty_level + 0.1)
 
+        # Check for boss spawn
+        if self.boss is None and not self.boss_warning:
+            # Spawn boss every BOSS_SPAWN_INTERVAL points
+            if self.score > 0 and self.score % BOSS_SPAWN_INTERVAL < 50 and self.score >= BOSS_SPAWN_INTERVAL:
+                self.boss_warning = True
+                self.boss_warning_timer = BOSS_WARNING_DURATION
+
+        # Update boss warning
+        if self.boss_warning:
+            self.boss_warning_timer -= 1
+            if self.boss_warning_timer <= 0:
+                self.boss_warning = False
+                # Spawn the boss
+                patterns = ['sine', 'circle', 'figure8']
+                pattern = random.choice(patterns)
+                self.boss = Boss(pattern)
+
         # Update ship
         keys = pygame.key.get_pressed()
         self.ship.update(keys)
@@ -921,6 +1068,13 @@ class Game:
             else:
                 asteroid.update()
         self.asteroids = [asteroid for asteroid in self.asteroids if not asteroid.is_off_screen()]
+
+        # Update boss
+        if self.boss:
+            self.boss.update()
+            # Remove boss if it goes off-screen
+            if self.boss.is_off_screen():
+                self.boss = None
 
         # Update power-ups
         for powerup in self.powerups:
@@ -1019,6 +1173,41 @@ class Game:
         # Add child asteroids from breaking
         self.asteroids.extend(asteroids_to_add)
 
+        # Boss-laser collisions
+        if self.boss:
+            lasers_to_remove_boss = []
+            for i, laser in enumerate(self.lasers):
+                if laser.collides_with_boss(self.boss):
+                    if i not in lasers_to_remove_boss:
+                        lasers_to_remove_boss.append(i)
+                        # Boss takes damage
+                        if self.boss.take_damage():
+                            # Boss defeated!
+                            self.create_impact_particles(self.boss.x, self.boss.y)
+                            self.create_debris_particles(self.boss.x, self.boss.y, count=50)
+                            # Big explosion
+                            for _ in range(5):
+                                offset_x = random.uniform(-30, 30)
+                                offset_y = random.uniform(-30, 30)
+                                self.explosions.append(Explosion(self.boss.x + offset_x, self.boss.y + offset_y))
+                            # Score points
+                            self.score += self.boss.points
+                            # Drop guaranteed power-up
+                            powerup_types = ['shield', 'rapid_fire', 'spread_shot', 'double_damage', 'magnet', 'time_slow']
+                            powerup_type = random.choice(powerup_types)
+                            self.powerups.append(PowerUp(self.boss.x, self.boss.y, powerup_type))
+                            # Huge screen shake
+                            self.screen_shake = SCREEN_SHAKE_DURATION * 3
+                            self.boss = None
+                        else:
+                            # Just hit, create impact
+                            self.create_impact_particles(self.boss.x, self.boss.y)
+                            self.screen_shake = SCREEN_SHAKE_DURATION // 2
+            # Remove lasers that hit boss
+            for i in lasers_to_remove_boss:
+                if i < len(self.lasers):
+                    self.lasers.pop(i)
+
         # Ship-asteroid collisions
         for asteroid in self.asteroids:
             if asteroid.collides_with_ship(self.ship):
@@ -1043,6 +1232,18 @@ class Game:
                     self.combo = 0
                     self.combo_timer = 0
                 break
+
+        # Ship-boss collisions
+        if self.boss and self.boss.collides_with_ship(self.ship):
+            if self.ship.take_damage():
+                self.game_over = True
+            else:
+                # Screen shake on hit
+                self.screen_shake = SCREEN_SHAKE_DURATION * 2
+                self.play_sound('hit')
+                # Reset combo
+                self.combo = 0
+                self.combo_timer = 0
 
         # Ship-powerup collisions
         for powerup in self.powerups:
@@ -1071,6 +1272,10 @@ class Game:
         # Draw asteroids
         for asteroid in self.asteroids:
             asteroid.draw(offset_screen)
+
+        # Draw boss
+        if self.boss:
+            self.boss.draw(offset_screen)
 
         # Draw power-ups
         for powerup in self.powerups:
@@ -1157,6 +1362,42 @@ class Game:
             ts_text = self.small_font.render(f"Time Slow: {self.time_slow_timer // FPS}s", True, POWERUP_COLORS['time_slow'])
             screen.blit(ts_text, (20, y_offset))
             y_offset += 30
+
+        # Draw boss health bar
+        if self.boss:
+            # Health bar background
+            bar_x = (WIDTH - BOSS_HEALTHBAR_WIDTH) // 2
+            bar_y = 60
+            pygame.draw.rect(screen, (50, 50, 50),
+                           (bar_x, bar_y, BOSS_HEALTHBAR_WIDTH, BOSS_HEALTHBAR_HEIGHT))
+
+            # Health bar fill
+            health_ratio = self.boss.health / self.boss.max_health
+            health_width = int(BOSS_HEALTHBAR_WIDTH * health_ratio)
+            health_color = (255, int(255 * health_ratio), int(255 * health_ratio))
+            pygame.draw.rect(screen, health_color,
+                           (bar_x, bar_y, health_width, BOSS_HEALTHBAR_HEIGHT))
+
+            # Health bar border
+            pygame.draw.rect(screen, (255, 255, 255),
+                           (bar_x, bar_y, BOSS_HEALTHBAR_WIDTH, BOSS_HEALTHBAR_HEIGHT), 2)
+
+            # Boss label
+            boss_label = self.font.render("BOSS", True, BOSS_COLOR)
+            screen.blit(boss_label, (bar_x - boss_label.get_width() - 10, bar_y - 5))
+
+            # Health text
+            health_text = self.small_font.render(f"{self.boss.health}/{self.boss.max_health}", True, TEXT_COLOR)
+            screen.blit(health_text, (bar_x + BOSS_HEALTHBAR_WIDTH // 2 - health_text.get_width() // 2, bar_y + 2))
+
+        # Draw boss warning
+        if self.boss_warning:
+            warning_alpha = int(200 * abs(math.sin(self.boss_warning_timer / 10)))
+            warning_surface = pygame.Surface((WIDTH, 100), pygame.SRCALPHA)
+            warning_text = self.font.render("WARNING! BOSS APPROACHING!", True, (255, 0, 0, warning_alpha))
+            warning_surface.blit(warning_text,
+                               (WIDTH // 2 - warning_text.get_width() // 2, 40))
+            screen.blit(warning_surface, (0, HEIGHT // 2 - 50))
 
         # Draw controls
         controls_text = self.small_font.render("WASD/Arrows: Move | SPACE: Shoot | P: Pause", True, TEXT_COLOR)
