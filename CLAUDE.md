@@ -58,7 +58,7 @@ python src/main.py
 - **Asteroids**: Randomly generated obstacles that break into smaller pieces
   - Scoring: Large (25pts), Medium (15pts), Small (10pts)
 - **Lasers**: Projectiles fired by the player that destroy asteroids
-- **Bosses**: Epic boss enemies that appear every 500 points and stay on screen until defeated
+- **Bosses**: Epic boss enemies that appear every 2500 points (v1.4) and stay on screen until defeated
   - Five movement patterns: sine wave, circular, figure-8, zigzag, and spiral
   - Health scales with difficulty level (15 HP at 1.0x → 45 HP at 3.0x)
   - Orbit around a center position instead of moving off-screen
@@ -89,7 +89,8 @@ python src/main.py
 - `difficulty_level`: Float (1.0-3.0) that increases at score milestones
 - `score`: Current score used to determine difficulty progression
 - Power-up timers and states for all active power-ups (stack up to 2x duration)
-- Combo system with 3-second timeout (COMBO_TIMEOUT = 180 frames)
+- Combo system with 2-second timeout (COMBO_TIMEOUT = 120 frames, reduced in v1.4 for skill-based play)
+- Combo multipliers: [1, 2, 3, 5, 8, 10] - up to 10x at combo 6+ (v1.4 added 10x tier)
 
 ## File Persistence
 
@@ -102,6 +103,44 @@ python src/main.py
   - File is read on startup and written when settings change
   - Settings apply to both music and all sound effects
 - The `data/` directory is auto-created on first run
+
+## Recent Changes (v1.4)
+
+**Critical Bug Fixes**:
+- Fixed music volume not applying on startup (line 1017): Removed conditional check that prevented volume initialization
+- Fixed nuke power-up ignoring combo multipliers (lines 1349-1359): Now applies combo bonuses to nuke asteroid destruction
+- Player name length now enforced (MAX_NAME_LENGTH = 15): Prevents UI overflow issues
+
+**Performance Optimizations**:
+- Reduced laser particle spawn rate by 50% (line 1517-1518): Uses random chance check to halve particle count
+- Optimized time slow implementation (lines 322-334, 1536-1538): Asteroid.update() now accepts time_scale parameter, eliminating wasteful velocity save/restore operations every frame
+- Added MAX_ASTEROIDS enforcement when breaking asteroids (lines 1662-1665, 1759-1762): Prevents performance degradation from asteroid spawning cascades
+
+**Architecture Improvements**:
+- **PowerUpManager class** (lines 705-778): New centralized power-up management system
+  - Replaces 36+ lines of repetitive timer code with elegant class-based design
+  - Methods: update(), activate(), is_active(), get_timer()
+  - Manages all power-up states, timers, and stacking logic in one place
+- Refactored Game class to use PowerUpManager throughout collision detection, UI rendering, and activation logic
+- Removed 10 individual power-up state variables, replaced with single manager instance (line 932)
+
+**Code Quality**:
+- Added constants for magic numbers (lines 102-104): TIME_SLOW_MULTIPLIER, MAGNET_PULL_SPEED, NUKE_BOSS_DAMAGE
+- Removed unused variables: difficulty_timer and DIFFICULTY_INCREASE_INTERVAL constant
+- All magic numbers now have descriptive constant names for better maintainability
+
+**Balance Changes**:
+- Boss spawn interval increased from 500 to 2500 points (line 122): Compensates for 5x asteroid scoring increase in v1.3
+- Difficulty milestones extended to 100,000 points (lines 1430-1431): 21 milestones from 0 to 100K with 0.1 increments, caps at 3.0x speed
+- Combo timeout reduced from 180 to 120 frames (line 131): 2 seconds instead of 3, making combos more skill-based
+- Difficulty increment reduced from 0.2 to 0.1 per milestone (line 1434): Smoother, more gradual difficulty curve
+- Combo cap increased from 8x to 10x (line 132): Added 6th multiplier level for sustained skilled play
+- Added difficulty display on HUD (lines 2139-2143): Shows "Speed: X.Xx" multiplier in golden color at (20, 90)
+
+**Performance Impact**:
+- 50% reduction in particle generation
+- Eliminated 6-12 velocity operations per asteroid per frame during time slow
+- Cleaner code architecture with ~60 lines removed, ~80 added for better functionality
 
 ## Recent Changes (v1.3)
 
@@ -144,10 +183,11 @@ python src/main.py
   - `save_settings()` writes settings to file when changed
   - `apply_volume()` applies current volume/mute to pygame.mixer.music and all Sound objects
   - Volume changes take effect immediately via `apply_volume()` call
-- **Difficulty System** (v1.3):
-  - Uses score milestones [0, 100, 250, 500, 1000, 2000, 3500, 5000, 7500, 10000]
-  - Difficulty increases by 0.2 per milestone, capped at 3.0x
+- **Difficulty System** (v1.4):
+  - Uses score milestones [0, 400, 1000, 2000, 3500, 5500, 8000, 11000, 15000, 20000, 26000, 33000, 41000, 50000, 60000, 71000, 83000, 90000, 95000, 98000, 100000]
+  - Difficulty increases by 0.1 per milestone, capped at 3.0x at 100,000 points
   - Affects asteroid spawn rate, speed, and boss health
+  - Much more gradual progression compared to v1.3
 - **Power-up Stacking** (v1.3):
   - Collecting same power-up adds to timer instead of replacing
   - Capped at 2x base duration (14 seconds for most, 20 for shield)

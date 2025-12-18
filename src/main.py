@@ -83,7 +83,6 @@ ASTEROID_MAX_RADIUS = 50
 ASTEROID_BASE_SPEED = 5
 ASTEROID_SPAWN_FREQUENCY = 60
 MAX_ASTEROIDS = 8
-DIFFICULTY_INCREASE_INTERVAL = 500  # Every 500 frames
 
 # Laser settings
 LASER_WIDTH = 20
@@ -99,6 +98,9 @@ POWERUP_SPEED = 3
 POWERUP_SPAWN_CHANCE = 0.1  # 10% chance per asteroid destroyed
 POWERUP_DURATION = 420  # 7 seconds at 60 FPS (increased for better value)
 SHIELD_DURATION = 600  # 10 seconds
+TIME_SLOW_MULTIPLIER = 0.5  # Asteroids move at 50% speed when time slow is active
+MAGNET_PULL_SPEED = 3  # Speed at which magnet pulls power-ups toward ship
+NUKE_BOSS_DAMAGE = 3  # Damage dealt to boss by nuke power-up
 
 # Star settings
 NUM_STARS = 200
@@ -119,7 +121,7 @@ BOSS_EXPLOSION_DURATION = 60  # frames
 BOSS_RADIUS = 80
 BOSS_HEALTH = 15
 BOSS_SPEED = 2
-BOSS_SPAWN_INTERVAL = 500  # Every 500 points
+BOSS_SPAWN_INTERVAL = 2500  # Every 2500 points
 BOSS_COLOR = (200, 50, 50)
 BOSS_DETAIL_COLOR = (150, 30, 30)
 BOSS_GLOW_COLOR = (255, 100, 100)
@@ -128,8 +130,8 @@ BOSS_HEALTHBAR_HEIGHT = 20
 BOSS_WARNING_DURATION = 180  # 3 seconds at 60 FPS
 
 # Combo settings
-COMBO_TIMEOUT = 180  # 3 seconds to maintain combo
-COMBO_MULTIPLIERS = [1, 2, 3, 5, 8]  # Score multipliers for combo levels
+COMBO_TIMEOUT = 120  # 2 seconds to maintain combo
+COMBO_MULTIPLIERS = [1, 2, 3, 5, 8, 10]  # Score multipliers for combo levels
 
 # Particle settings
 PARTICLE_LIFETIME = 30  # frames
@@ -317,11 +319,15 @@ class Asteroid:
         self.angle = random.uniform(0, 360)
         self.rotation_speed = random.uniform(-2, 2)  # degrees per frame
 
-    def update(self):
-        """Move asteroid with custom velocity."""
-        self.x += self.velocity_x
-        self.y += self.velocity_y
-        self.angle += self.rotation_speed
+    def update(self, time_scale=1.0):
+        """Move asteroid with custom velocity.
+
+        Args:
+            time_scale: Multiplier for movement speed (default 1.0, 0.5 for time slow)
+        """
+        self.x += self.velocity_x * time_scale
+        self.y += self.velocity_y * time_scale
+        self.angle += self.rotation_speed * time_scale
         if self.angle >= 360:
             self.angle -= 360
         elif self.angle < 0:
@@ -696,6 +702,82 @@ class PowerUp:
         return distance_squared < collision_radius**2
 
 
+class PowerUpManager:
+    """Manages all active power-up states and timers."""
+
+    def __init__(self, ship):
+        """Initialize the power-up manager.
+
+        Args:
+            ship: Reference to the Ship object for shield management
+        """
+        self.ship = ship
+        # Dictionary to store active power-up timers
+        self.active_powerups = {
+            "rapid_fire": 0,
+            "spread_shot": 0,
+            "double_damage": 0,
+            "magnet": 0,
+            "time_slow": 0,
+        }
+
+    def update(self):
+        """Update all power-up timers and deactivate expired ones."""
+        for powerup_type in self.active_powerups:
+            if self.active_powerups[powerup_type] > 0:
+                self.active_powerups[powerup_type] -= 1
+
+        # Update shield separately (managed by ship)
+        if self.ship.shield_timer > 0:
+            self.ship.shield_timer -= 1
+            if self.ship.shield_timer == 0:
+                self.ship.has_shield = False
+
+    def activate(self, powerup_type):
+        """Activate a power-up. Stacks duration up to 2x max if already active.
+
+        Args:
+            powerup_type: Type of power-up to activate
+        """
+        if powerup_type == "shield":
+            self.ship.has_shield = True
+            # Stack duration up to 2x max
+            self.ship.shield_timer += SHIELD_DURATION
+            self.ship.shield_timer = min(SHIELD_DURATION * 2, self.ship.shield_timer)
+        elif powerup_type in self.active_powerups:
+            # Stack duration up to 2x max for non-instant power-ups
+            self.active_powerups[powerup_type] += POWERUP_DURATION
+            self.active_powerups[powerup_type] = min(
+                POWERUP_DURATION * 2, self.active_powerups[powerup_type]
+            )
+
+    def is_active(self, powerup_type):
+        """Check if a power-up is currently active.
+
+        Args:
+            powerup_type: Type of power-up to check
+
+        Returns:
+            bool: True if active, False otherwise
+        """
+        if powerup_type == "shield":
+            return self.ship.has_shield
+        return self.active_powerups.get(powerup_type, 0) > 0
+
+    def get_timer(self, powerup_type):
+        """Get remaining timer for a power-up.
+
+        Args:
+            powerup_type: Type of power-up
+
+        Returns:
+            int: Remaining frames for the power-up
+        """
+        if powerup_type == "shield":
+            return self.ship.shield_timer
+        return self.active_powerups.get(powerup_type, 0)
+
+
 class Explosion:
     """Explosion animation effect."""
 
@@ -840,24 +922,14 @@ class Game:
         # Timers and counters
         self.laser_cooldown = 0
         self.asteroid_spawn_timer = 0
-        self.difficulty_timer = 0
         self.difficulty_level = 1.0
 
         # Combo system
         self.combo = 0
         self.combo_timer = 0
 
-        # Power-up states
-        self.rapid_fire_active = False
-        self.rapid_fire_timer = 0
-        self.spread_shot_active = False
-        self.spread_shot_timer = 0
-        self.double_damage_active = False
-        self.double_damage_timer = 0
-        self.magnet_active = False
-        self.magnet_timer = 0
-        self.time_slow_active = False
-        self.time_slow_timer = 0
+        # Power-up manager
+        self.powerup_manager = PowerUpManager(self.ship)
 
         # Screen shake
         self.screen_shake = 0
@@ -1011,9 +1083,8 @@ class Game:
         """Apply current volume and mute settings to music and sounds."""
         effective_volume = 0.0 if self.muted else self.volume
 
-        # Apply to music
-        if pygame.mixer.music.get_busy():
-            pygame.mixer.music.set_volume(effective_volume)
+        # Apply to music (set volume regardless of whether music is playing)
+        pygame.mixer.music.set_volume(effective_volume)
 
         # Apply to all sound effects
         for sound_name, sound in self.sounds.items():
@@ -1058,20 +1129,10 @@ class Game:
         self.name_input_active = False
         self.laser_cooldown = 0
         self.asteroid_spawn_timer = 0
-        self.difficulty_timer = 0
         self.difficulty_level = 1.0
         self.combo = 0
         self.combo_timer = 0
-        self.rapid_fire_active = False
-        self.rapid_fire_timer = 0
-        self.spread_shot_active = False
-        self.spread_shot_timer = 0
-        self.double_damage_active = False
-        self.double_damage_timer = 0
-        self.magnet_active = False
-        self.magnet_timer = 0
-        self.time_slow_active = False
-        self.time_slow_timer = 0
+        self.powerup_manager = PowerUpManager(self.ship)  # Reset power-up manager
         self.screen_shake = 0
         self.create_initial_asteroids()
 
@@ -1250,10 +1311,10 @@ class Game:
     def shoot_laser(self):
         """Fire laser(s) based on current power-ups."""
         cooldown = (
-            RAPID_FIRE_COOLDOWN if self.rapid_fire_active else LASER_COOLDOWN_FRAMES
+            RAPID_FIRE_COOLDOWN if self.powerup_manager.is_active("rapid_fire") else LASER_COOLDOWN_FRAMES
         )
 
-        if self.spread_shot_active:
+        if self.powerup_manager.is_active("spread_shot"):
             # Shoot 3 lasers in a spread
             for angle in [-SPREAD_SHOT_ANGLE, 0, SPREAD_SHOT_ANGLE]:
                 laser = Laser(self.ship.x + self.ship.width, self.ship.y, angle)
@@ -1285,48 +1346,21 @@ class Game:
 
     def activate_powerup(self, powerup_type):
         """Activate a power-up effect. Stacks duration if already active."""
-        if powerup_type == "shield":
-            self.ship.has_shield = True
-            # Stack duration up to 2x max
-            self.ship.shield_timer += SHIELD_DURATION
-            self.ship.shield_timer = min(SHIELD_DURATION * 2, self.ship.shield_timer)
-        elif powerup_type == "rapid_fire":
-            self.rapid_fire_active = True
-            # Stack duration up to 2x max
-            self.rapid_fire_timer += POWERUP_DURATION
-            self.rapid_fire_timer = min(POWERUP_DURATION * 2, self.rapid_fire_timer)
-        elif powerup_type == "spread_shot":
-            self.spread_shot_active = True
-            # Stack duration up to 2x max
-            self.spread_shot_timer += POWERUP_DURATION
-            self.spread_shot_timer = min(POWERUP_DURATION * 2, self.spread_shot_timer)
-        elif powerup_type == "double_damage":
-            self.double_damage_active = True
-            # Stack duration up to 2x max
-            self.double_damage_timer += POWERUP_DURATION
-            self.double_damage_timer = min(POWERUP_DURATION * 2, self.double_damage_timer)
-        elif powerup_type == "magnet":
-            self.magnet_active = True
-            # Stack duration up to 2x max
-            self.magnet_timer += POWERUP_DURATION
-            self.magnet_timer = min(POWERUP_DURATION * 2, self.magnet_timer)
-        elif powerup_type == "time_slow":
-            self.time_slow_active = True
-            # Stack duration up to 2x max
-            self.time_slow_timer += POWERUP_DURATION
-            self.time_slow_timer = min(POWERUP_DURATION * 2, self.time_slow_timer)
-        elif powerup_type == "nuke":
-            # Instant effect - destroy all asteroids
+        if powerup_type == "nuke":
+            # Instant effect - destroy all asteroids with combo multiplier
             for asteroid in self.asteroids:
                 self.explosions.append(Explosion(asteroid.x, asteroid.y))
                 self.create_debris_particles(
                     asteroid.x, asteroid.y, count=int(asteroid.radius / 2)
                 )
-                self.score += asteroid.points
+                # Apply combo multiplier to nuke points
+                multiplier_index = min(self.combo - 1, len(COMBO_MULTIPLIERS) - 1)
+                multiplier = COMBO_MULTIPLIERS[multiplier_index] if self.combo > 0 else 1
+                self.score += asteroid.points * multiplier
             self.asteroids = []
             # Damage boss heavily if present
             if self.boss:
-                nuke_damage = 3  # Nuke deals heavy damage to boss (20% of base HP)
+                nuke_damage = NUKE_BOSS_DAMAGE
                 if self.boss.take_damage(nuke_damage):
                     # Boss defeated by nuke!
                     self.create_impact_particles(self.boss.x, self.boss.y)
@@ -1360,6 +1394,9 @@ class Game:
                     # Just damaged, create impact
                     self.create_impact_particles(self.boss.x, self.boss.y)
             self.screen_shake = SCREEN_SHAKE_DURATION * 2
+        else:
+            # All other power-ups handled by manager
+            self.powerup_manager.activate(powerup_type)
         self.play_sound("powerup")
 
     def create_laser_particles(self, x, y):
@@ -1427,11 +1464,12 @@ class Game:
             return
 
         # Update difficulty based on score milestones
-        score_milestones = [0, 100, 250, 500, 1000, 2000, 3500, 5000, 7500, 10000]
+        score_milestones = [0, 400, 1000, 2000, 3500, 5500, 8000, 11000, 15000, 20000,
+                           26000, 33000, 41000, 50000, 60000, 71000, 83000, 90000, 95000, 98000, 100000]
         for i, milestone in enumerate(score_milestones):
             if self.score >= milestone:
-                # Difficulty increases by 0.2 per milestone
-                target_difficulty = 1.0 + (i * 0.2)
+                # Difficulty increases by 0.1 per milestone, caps at 3.0x at 100,000 points
+                target_difficulty = 1.0 + (i * 0.1)
                 self.difficulty_level = min(3.0, target_difficulty)
 
         # Check for boss spawn
@@ -1477,31 +1515,8 @@ class Game:
         if self.laser_cooldown > 0:
             self.laser_cooldown -= 1
 
-        # Update power-up timers
-        if self.rapid_fire_timer > 0:
-            self.rapid_fire_timer -= 1
-            if self.rapid_fire_timer == 0:
-                self.rapid_fire_active = False
-
-        if self.spread_shot_timer > 0:
-            self.spread_shot_timer -= 1
-            if self.spread_shot_timer == 0:
-                self.spread_shot_active = False
-
-        if self.double_damage_timer > 0:
-            self.double_damage_timer -= 1
-            if self.double_damage_timer == 0:
-                self.double_damage_active = False
-
-        if self.magnet_timer > 0:
-            self.magnet_timer -= 1
-            if self.magnet_timer == 0:
-                self.magnet_active = False
-
-        if self.time_slow_timer > 0:
-            self.time_slow_timer -= 1
-            if self.time_slow_timer == 0:
-                self.time_slow_active = False
+        # Update power-up timers using manager
+        self.powerup_manager.update()
 
         # Update combo timer
         if self.combo_timer > 0:
@@ -1512,23 +1527,15 @@ class Game:
         # Update lasers
         for laser in self.lasers:
             laser.update()
-            # Create laser trail particles
-            self.create_laser_particles(laser.x, laser.y)
+            # Create laser trail particles (50% chance to reduce particle count)
+            if random.random() < 0.5:
+                self.create_laser_particles(laser.x, laser.y)
         self.lasers = [laser for laser in self.lasers if not laser.is_off_screen()]
 
         # Update asteroids
+        time_scale = TIME_SLOW_MULTIPLIER if self.powerup_manager.is_active("time_slow") else 1.0
         for asteroid in self.asteroids:
-            # Time slow effect - update asteroids at half speed
-            if self.time_slow_active:
-                # Save original velocities
-                orig_vx, orig_vy = asteroid.velocity_x, asteroid.velocity_y
-                asteroid.velocity_x *= 0.5
-                asteroid.velocity_y *= 0.5
-                asteroid.update()
-                # Restore original velocities
-                asteroid.velocity_x, asteroid.velocity_y = orig_vx, orig_vy
-            else:
-                asteroid.update()
+            asteroid.update(time_scale)
         self.asteroids = [
             asteroid for asteroid in self.asteroids if not asteroid.is_off_screen()
         ]
@@ -1542,16 +1549,15 @@ class Game:
         for powerup in self.powerups:
             powerup.update()
             # Magnet effect - pull power-ups towards ship
-            if self.magnet_active:
+            if self.powerup_manager.is_active("magnet"):
                 ship_center = self.ship.get_center()
                 dx = ship_center[0] - powerup.x
                 dy = ship_center[1] - powerup.y
                 distance = math.sqrt(dx**2 + dy**2)
                 if distance > 0:
                     # Pull towards ship
-                    pull_speed = 3
-                    powerup.x += (dx / distance) * pull_speed
-                    powerup.y += (dy / distance) * pull_speed
+                    powerup.x += (dx / distance) * MAGNET_PULL_SPEED
+                    powerup.y += (dy / distance) * MAGNET_PULL_SPEED
             # Create sparkle particles around power-ups
             if random.random() < 0.3:  # 30% chance each frame
                 self.create_powerup_particles(powerup.x, powerup.y)
@@ -1641,7 +1647,7 @@ class Game:
                         multiplier = COMBO_MULTIPLIERS[multiplier_index]
                         points = asteroid.points * multiplier
                         # Double damage doubles the points
-                        if self.double_damage_active:
+                        if self.powerup_manager.is_active("double_damage"):
                             points *= 2
                         self.score += points
                         # Break asteroid into smaller pieces if applicable
@@ -1662,8 +1668,10 @@ class Game:
             if i not in asteroids_to_remove
         ]
 
-        # Add child asteroids from breaking
-        self.asteroids.extend(asteroids_to_add)
+        # Add child asteroids from breaking (respect MAX_ASTEROIDS limit)
+        available_slots = MAX_ASTEROIDS - len(self.asteroids)
+        if available_slots > 0:
+            self.asteroids.extend(asteroids_to_add[:available_slots])
 
         # Boss-laser collisions
         if self.boss:
@@ -1680,7 +1688,7 @@ class Game:
                         self.combo += 1
                         self.combo_timer = COMBO_TIMEOUT
                         # Boss takes damage (double if power-up active)
-                        damage = 2 if self.double_damage_active else 1
+                        damage = 2 if self.powerup_manager.is_active("double_damage") else 1
                         if self.boss.take_damage(damage):
                             # Boss defeated!
                             self.create_impact_particles(self.boss.x, self.boss.y)
@@ -1757,8 +1765,9 @@ class Game:
                     # Break asteroid if applicable (even on ship collision)
                     if asteroid.can_break():
                         children = asteroid.create_children(self.difficulty_level)
-                        # Add children after removing parent
-                        for child in children:
+                        # Add children after removing parent (respect MAX_ASTEROIDS limit)
+                        available_slots = MAX_ASTEROIDS - len(self.asteroids)
+                        for child in children[:available_slots]:
                             self.asteroids.append(child)
                     # Mark asteroid for removal (don't remove during iteration)
                     asteroid_to_remove = asteroid
@@ -2136,6 +2145,12 @@ class Game:
         lives_text = self.font.render(f"Lives: {self.ship.lives}", True, HEALTH_COLOR)
         screen.blit(lives_text, (20, 60))
 
+        # Draw difficulty multiplier
+        difficulty_text = self.small_font.render(
+            f"Speed: {self.difficulty_level:.1f}x", True, (255, 200, 100)
+        )
+        screen.blit(difficulty_text, (20, 90))
+
         # Draw combo
         if self.combo > 1:
             multiplier_index = min(self.combo - 1, len(COMBO_MULTIPLIERS) - 1)
@@ -2144,53 +2159,53 @@ class Game:
             screen.blit(combo_text, (WIDTH // 2 - combo_text.get_width() // 2, 20))
 
         # Draw active power-ups
-        y_offset = 100
-        if self.rapid_fire_active:
+        y_offset = 120
+        if self.powerup_manager.is_active("rapid_fire"):
             rf_text = self.small_font.render(
-                f"Rapid Fire: {self.rapid_fire_timer // FPS}s",
+                f"Rapid Fire: {self.powerup_manager.get_timer('rapid_fire') // FPS}s",
                 True,
                 POWERUP_COLORS["rapid_fire"],
             )
             screen.blit(rf_text, (20, y_offset))
             y_offset += 30
 
-        if self.spread_shot_active:
+        if self.powerup_manager.is_active("spread_shot"):
             ss_text = self.small_font.render(
-                f"Spread Shot: {self.spread_shot_timer // FPS}s",
+                f"Spread Shot: {self.powerup_manager.get_timer('spread_shot') // FPS}s",
                 True,
                 POWERUP_COLORS["spread_shot"],
             )
             screen.blit(ss_text, (20, y_offset))
             y_offset += 30
 
-        if self.ship.has_shield:
+        if self.powerup_manager.is_active("shield"):
             shield_text = self.small_font.render(
-                f"Shield: {self.ship.shield_timer // FPS}s",
+                f"Shield: {self.powerup_manager.get_timer('shield') // FPS}s",
                 True,
                 POWERUP_COLORS["shield"],
             )
             screen.blit(shield_text, (20, y_offset))
             y_offset += 30
 
-        if self.double_damage_active:
+        if self.powerup_manager.is_active("double_damage"):
             dd_text = self.small_font.render(
-                f"Double Damage: {self.double_damage_timer // FPS}s",
+                f"Double Damage: {self.powerup_manager.get_timer('double_damage') // FPS}s",
                 True,
                 POWERUP_COLORS["double_damage"],
             )
             screen.blit(dd_text, (20, y_offset))
             y_offset += 30
 
-        if self.magnet_active:
+        if self.powerup_manager.is_active("magnet"):
             mag_text = self.small_font.render(
-                f"Magnet: {self.magnet_timer // FPS}s", True, POWERUP_COLORS["magnet"]
+                f"Magnet: {self.powerup_manager.get_timer('magnet') // FPS}s", True, POWERUP_COLORS["magnet"]
             )
             screen.blit(mag_text, (20, y_offset))
             y_offset += 30
 
-        if self.time_slow_active:
+        if self.powerup_manager.is_active("time_slow"):
             ts_text = self.small_font.render(
-                f"Time Slow: {self.time_slow_timer // FPS}s",
+                f"Time Slow: {self.powerup_manager.get_timer('time_slow') // FPS}s",
                 True,
                 POWERUP_COLORS["time_slow"],
             )
