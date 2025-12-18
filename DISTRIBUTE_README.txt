@@ -20,7 +20,7 @@ MAIN MENU:
 IN GAME:
 1. Destroy asteroids to score points and build combos
 2. Collect power-ups to enhance your ship
-3. Defeat bosses every 500 points for massive rewards
+3. Defeat bosses every 2500 points for massive rewards
 4. You have 3 lives - use them wisely!
 5. Try to make it into the top 10 leaderboard!
 
@@ -63,19 +63,22 @@ BASIC SURVIVAL:
 - The game speeds up as you progress - stay focused!
 
 POWER-UPS (collect the rotating colored squares):
-- Shield (Green) - Blocks one hit from any source
-- Rapid Fire (Yellow) - Shoot faster for 5 seconds
-- Spread Shot (Purple) - Fire 3 lasers at once
-- Double Damage (Pink) - Deal 2x damage and earn 2x points
-- Magnet (Purple) - Attract power-ups automatically
-- Time Slow (Blue) - Slow down asteroids
-- Nuke (Red) - Destroy everything on screen (rare!)
+- Shield (Green) - Blocks one hit from any source (lasts 10 seconds)
+- Rapid Fire (Yellow) - Shoot faster for 7 seconds
+- Spread Shot (Purple) - Fire 3 lasers at once for 7 seconds
+- Double Damage (Pink) - Deal 2x damage and earn 2x points for 7 seconds
+- Magnet (Purple) - Attract power-ups automatically for 7 seconds
+- Time Slow (Blue) - Slow down asteroids for 7 seconds
+- Nuke (Red) - Destroy everything on screen instantly (rare!)
+- TIP: Collecting the same power-up extends its duration up to 2x max!
 
 SCORING STRATEGIES:
-- Build combos by destroying asteroids quickly (up to 8x multiplier!)
-- Boss fights every 500 points - watch for warnings!
+- Build combos by destroying asteroids quickly (up to 10x multiplier!)
+- You have 2 seconds between kills to maintain your combo - be fast!
+- Boss fights every 2500 points - watch for warnings!
 - Bosses stay on screen until defeated - you must destroy them to continue!
 - Use power-ups strategically during boss encounters
+- Watch the HUD to see your current speed difficulty multiplier
 - Top 10 leaderboard - enter your name if you qualify!
 - View your ranking in the Highscores menu from the main menu
 
