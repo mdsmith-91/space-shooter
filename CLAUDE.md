@@ -56,11 +56,15 @@ python src/main.py
 **Key Components**:
 - **Ship**: Player-controlled spaceship with WASD/arrow key movement
 - **Asteroids**: Randomly generated obstacles that break into smaller pieces
+  - Scoring: Large (25pts), Medium (15pts), Small (10pts)
 - **Lasers**: Projectiles fired by the player that destroy asteroids
 - **Bosses**: Epic boss enemies that appear every 500 points and stay on screen until defeated
-  - Three movement patterns: sine wave, circular, and figure-8
+  - Five movement patterns: sine wave, circular, figure-8, zigzag, and spiral
+  - Health scales with difficulty level (15 HP at 1.0x → 45 HP at 3.0x)
   - Orbit around a center position instead of moving off-screen
 - **Power-ups**: 7 types (shield, rapid fire, spread shot, double damage, magnet, time slow, nuke)
+  - Duration: Most last 7 seconds (420 frames), Shield lasts 10 seconds (600 frames)
+  - Stacking: Collecting duplicates extends duration up to 2x maximum
 - **Explosions**: Visual effects with particle systems
 - **Stars**: Parallax scrolling background for visual depth
 - **Menu System**: Main menu with Play, Highscores, Options, and Exit
@@ -82,8 +86,10 @@ python src/main.py
 - `options_selected`: Index for options menu navigation (0=volume, 1=mute)
 - `volume`: Float (0.0-1.0) for audio volume percentage
 - `muted`: Boolean flag for mute state
-- Power-up timers and states for all active power-ups
-- Combo system with timeout tracking
+- `difficulty_level`: Float (1.0-3.0) that increases at score milestones
+- `score`: Current score used to determine difficulty progression
+- Power-up timers and states for all active power-ups (stack up to 2x duration)
+- Combo system with 3-second timeout (COMBO_TIMEOUT = 180 frames)
 
 ## File Persistence
 
@@ -96,6 +102,32 @@ python src/main.py
   - File is read on startup and written when settings change
   - Settings apply to both music and all sound effects
 - The `data/` directory is auto-created on first run
+
+## Recent Changes (v1.3)
+
+**Critical Bug Fixes**:
+- Fixed iterator modification crash in ship-asteroid collision (line 1685-1723): Now uses mark-and-remove pattern
+- Fixed file injection vulnerability in high score names (lines 1185, 946): Rejects colons and newlines
+- Fixed shield sound effect (lines 272-290): `take_damage()` now returns tuple `(game_over, shield_absorbed)`
+
+**Gameplay Balance**:
+- Asteroid scoring increased 5x: Line 306 changed from `radius/10` to `radius/2`
+- Double damage now splits asteroids: Removed `and not self.double_damage_active` check at line 1603
+- Combo timeout extended: Line 131 changed from 120 to 180 frames (3 seconds)
+- Nuke boss damage reduced: Line 1291 changed from 5 to 3 damage
+- Score-based difficulty: Lines 1391-1397 now use milestone array instead of frame counter
+- Power-up duration increased: Line 100 changed from 300 to 420 frames (7 seconds)
+- Boss health scaling: Boss.__init__ (line 452) now accepts difficulty_level parameter
+- Boss spawn passes difficulty: Line 1421 calls `Boss(pattern, self.difficulty_level)`
+
+**New Features**:
+- Boss patterns expanded: Added "zigzag" (lines 506-513) and "spiral" (lines 515-522) patterns
+- Power-up stacking: Lines 1286-1317 now add duration and cap at 2x maximum
+- Pattern list updated: Line 1437 includes all 5 patterns
+
+**Performance Optimizations**:
+- Font caching: PowerUp class pre-renders text in `__init__` (lines 654-657), uses cached in `draw()` (lines 676-683)
+- Collision early-exit: Lines 1606-1607 and 1661-1662 skip already-removed lasers
 
 ## Development Notes
 
@@ -112,6 +144,14 @@ python src/main.py
   - `save_settings()` writes settings to file when changed
   - `apply_volume()` applies current volume/mute to pygame.mixer.music and all Sound objects
   - Volume changes take effect immediately via `apply_volume()` call
+- **Difficulty System** (v1.3):
+  - Uses score milestones [0, 100, 250, 500, 1000, 2000, 3500, 5000, 7500, 10000]
+  - Difficulty increases by 0.2 per milestone, capped at 3.0x
+  - Affects asteroid spawn rate, speed, and boss health
+- **Power-up Stacking** (v1.3):
+  - Collecting same power-up adds to timer instead of replacing
+  - Capped at 2x base duration (14 seconds for most, 20 for shield)
+  - Prevents timer replacement, rewards collection
 
 ## Building for Distribution
 

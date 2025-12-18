@@ -2,6 +2,32 @@
 
 An action-packed pygame-based space shooter where you control a ship, blast asteroids, collect power-ups, and battle epic bosses!
 
+## What's New in v1.3
+
+**Gameplay Improvements:**
+- 🎯 **Score-based difficulty** - Difficulty now scales with your performance at milestones (100, 250, 500+)
+- 💰 **5x better scoring** - Asteroids worth 10-25 points (up from 2-5) for more rewarding gameplay
+- ⏱️ **Extended combos** - 3-second window (up from 2) makes combos more forgiving
+- 🔄 **Power-up stacking** - Collecting duplicates extends duration up to 2x (14 seconds max)
+- 💪 **Longer power-ups** - Most now last 7 seconds (up from 5) for better value
+- 🎲 **5 boss patterns** - Added zigzag and spiral movements for more variety
+- 📈 **Scaling bosses** - Boss health increases with difficulty (15-45 HP) for late-game challenge
+
+**Balance Changes:**
+- Double damage now correctly splits asteroids (was breaking them completely)
+- Nuke damage to bosses reduced from 5 to 3 HP for better balance
+- Shield still lasts 10 seconds while combat power-ups increased to 7 seconds
+
+**Bug Fixes:**
+- Fixed crash when ship collides with asteroids during iteration
+- Fixed high score file corruption from special characters in names
+- Fixed shield sound effect playing incorrect audio
+
+**Performance:**
+- Optimized font rendering (no more per-frame creation)
+- Added collision detection early-exit for 50% fewer checks
+- Smoother 60 FPS even with many power-ups on screen
+
 ## Features
 
 ### Core Gameplay
@@ -10,8 +36,9 @@ An action-packed pygame-based space shooter where you control a ship, blast aste
 - **Lives system**: Start with 3 lives and temporary invulnerability after taking damage
 - **Breaking asteroids**: Large and medium asteroids split into smaller pieces when destroyed
 - **Rotating asteroids**: Visual rotation effects with detailed crater graphics
-- **Progressive difficulty**: Game speeds up and spawns more asteroids as you survive longer
-- **Combo system**: Chain asteroid kills for score multipliers (up to 8x!)
+- **Skill-based difficulty**: Difficulty scales with your score milestones (100, 250, 500, 1000+), not just time
+- **Combo system**: Chain asteroid kills for score multipliers (up to 8x!) with 3-second window
+- **Rewarding scoring**: Asteroids worth 10-25 points based on size for satisfying progression
 - **Pause menu**: Press ESC to pause with options to Resume or return to Main Menu
 
 ### Menu System & UI
@@ -23,18 +50,20 @@ An action-packed pygame-based space shooter where you control a ship, blast aste
 - **Visual feedback**: Highlighted selections and smooth menu transitions
 
 ### Power-Ups
-Collect power-ups dropped by destroyed asteroids:
-- **Shield**: Absorbs one hit from asteroids or bosses
-- **Rapid Fire**: Shoot lasers faster for a limited time
-- **Spread Shot**: Fire 3 lasers at once in a spread pattern
-- **Double Damage**: Deal 2x damage and earn 2x points
-- **Magnet**: Attract nearby power-ups automatically
-- **Time Slow**: Slow down asteroids to half speed
-- **Nuke**: Instantly destroy all asteroids and deal massive boss damage (rare!)
+Collect power-ups dropped by destroyed asteroids (all last 7 seconds except Shield at 10 seconds):
+- **Shield**: Absorbs one hit from asteroids or bosses (10 seconds)
+- **Rapid Fire**: Shoot lasers faster for a limited time (7 seconds)
+- **Spread Shot**: Fire 3 lasers at once in a spread pattern (7 seconds)
+- **Double Damage**: Deal 2x damage and earn 2x points (7 seconds)
+- **Magnet**: Attract nearby power-ups automatically (7 seconds)
+- **Time Slow**: Slow down asteroids to half speed (7 seconds)
+- **Nuke**: Instantly destroy all asteroids and deal heavy boss damage (rare!)
+- **Stacking**: Collecting the same power-up extends its duration up to 2x maximum (14 seconds for most)
 
 ### Epic Boss Fights
 - **Boss warnings**: Screen alerts before boss arrival
-- **Multiple patterns**: Bosses use sine wave, circular, or figure-8 movement that keeps them on-screen
+- **5 unique patterns**: Bosses use sine wave, circular, figure-8, zigzag, or spiral movement patterns
+- **Scaling difficulty**: Boss health increases with your difficulty level (15-45 HP)
 - **Health bars**: Track boss health with visual indicators
 - **Stay and fight**: Bosses remain on screen until defeated - no running away!
 - **Big rewards**: Defeating bosses grants 500 points and guaranteed power-ups
@@ -92,12 +121,13 @@ The game starts with a main menu where you can:
 - `R` - Restart after game over
 
 **Gameplay Tips:**
-- **Combo chains**: Keep destroying asteroids quickly to build your combo multiplier
+- **Combo chains**: You have 3 seconds between kills to maintain your combo - stay aggressive!
+- **Power-up stacking**: Collecting duplicate power-ups extends their duration - grab them all!
 - **Power-up priority**: Shield and Spread Shot are great for survival; Double Damage for high scores
-- **Boss strategy**: Use power-ups during boss fights for maximum effectiveness
-- **Breaking asteroids**: Large asteroids split into smaller ones - clear them quickly!
+- **Boss strategy**: Bosses get tougher as difficulty increases - save your best power-ups
+- **Breaking asteroids**: Large asteroids split into smaller ones and are worth more points (25 vs 10)
 - **Lives management**: You have 3 lives with brief invulnerability after each hit
-- **Score milestones**: Bosses appear every 500 points - prepare accordingly!
+- **Score milestones**: Difficulty increases at 100, 250, 500, 1000+ points - skill-based progression!
 
 ## Setup
 
@@ -161,13 +191,17 @@ pip install -r requirements.txt
 
 ### Key Game Mechanics
 - **Asteroid breaking**: Large/medium asteroids split into 2-3 smaller pieces with spread velocities
+- **Asteroid scoring**: Points scale by size - Large: 25pts, Medium: 15pts, Small: 10pts
 - **Boss spawn system**: Bosses appear every 500 points with warning sequences; stay on screen until defeated
-- **Boss movement**: Bosses orbit around a center position using sine, circular, or figure-8 patterns
-- **Combo multipliers**: 1x → 2x → 3x → 5x → 8x scoring based on kill chains
-- **Power-up duration**: Most power-ups last 5 seconds (300 frames at 60 FPS)
-- **Difficulty scaling**: Asteroid spawn rate and speed increase over time (max 3x)
+- **Boss movement**: 5 unique patterns - sine wave, circular, figure-8, zigzag, and spiral
+- **Boss scaling**: Health increases with difficulty level (15 HP at 1.0x → 45 HP at 3.0x difficulty)
+- **Combo multipliers**: 1x → 2x → 3x → 5x → 8x scoring based on kill chains (3-second window)
+- **Power-up duration**: Most power-ups last 7 seconds (420 frames), Shield lasts 10 seconds (600 frames)
+- **Power-up stacking**: Collecting duplicates extends duration up to 2x maximum (14/20 seconds)
+- **Difficulty scaling**: Score-based progression at milestones (100, 250, 500, 1000, 2000+) up to 3x max
 - **Invulnerability**: 2 seconds (120 frames) after taking damage
 - **Sound system**: Graceful degradation with PyInstaller support - game runs silently if sound files missing
+- **Performance optimizations**: Font caching and collision detection early-exit for smooth 60 FPS
 
 ### Data Persistence
 - **High score storage**: Top 10 scores stored in `data/high_score.txt` (one per line)
