@@ -144,6 +144,7 @@ SCREEN_SHAKE_INTENSITY = 8
 # High score file
 DATA_DIR = "data"
 HIGH_SCORE_FILE = os.path.join(DATA_DIR, "high_score.txt")
+SETTINGS_FILE = os.path.join(DATA_DIR, "settings.txt")
 MAX_NAME_LENGTH = 15
 
 # =============================================================================
@@ -777,7 +778,7 @@ class Game:
 
         # Game state
         self.running = True
-        self.game_state = "menu"  # "menu", "playing", "game_over", "highscores"
+        self.game_state = "menu"  # "menu", "playing", "game_over", "highscores", "options"
         self.game_over = False
         self.paused = False
         self.score = 0
@@ -785,11 +786,17 @@ class Game:
         self.player_name = ""
         self.name_input_active = False
 
+        # Audio settings
+        self.volume = 1.0  # 0.0 to 1.0 (0% to 100%)
+        self.muted = False
+
         # Menu state
-        self.menu_options = ["Play", "Highscores", "Exit"]
+        self.menu_options = ["Play", "Highscores", "Options", "Exit"]
         self.menu_selected = 0
-        self.pause_options = ["Resume", "Main Menu"]
+        self.pause_options = ["Resume", "Options", "Main Menu"]
         self.pause_selected = 0
+        self.options_selected = 0  # For options menu navigation
+        self.previous_state = None  # Track where we came from
 
         # Game objects
         self.ship = Ship(SHIP_START_X, SHIP_START_Y)
@@ -839,6 +846,8 @@ class Game:
         # Initialize game
         self.ensure_data_directory()
         self.load_high_score()
+        self.load_settings()
+        self.apply_volume()
         self.create_stars()
         self.create_initial_asteroids()
 
@@ -884,7 +893,7 @@ class Game:
                 # Use resource_path to find music in both dev and bundled .exe
                 music_path = resource_path("sounds/music.wav")
                 pygame.mixer.music.load(music_path)
-                pygame.mixer.music.set_volume(1.0)  # 100% volume for background
+                pygame.mixer.music.set_volume(1.0)  # Will be adjusted by apply_volume()
                 pygame.mixer.music.play(-1)  # Loop forever
                 print("✅ Background music loaded")
             except (FileNotFoundError, pygame.error):
@@ -942,6 +951,46 @@ class Game:
         if len(self.high_scores) < 10:
             return True
         return self.score > self.high_scores[-1][0]
+
+    def load_settings(self):
+        """Load audio settings from file."""
+        if os.path.exists(SETTINGS_FILE):
+            try:
+                with open(SETTINGS_FILE, "r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if line:
+                            parts = line.split(":", 1)
+                            if len(parts) == 2:
+                                key, value = parts
+                                if key == "volume":
+                                    self.volume = float(value)
+                                elif key == "muted":
+                                    self.muted = value.lower() == "true"
+            except (FileNotFoundError, ValueError, IOError):
+                pass
+
+    def save_settings(self):
+        """Save audio settings to file."""
+        try:
+            with open(SETTINGS_FILE, "w") as f:
+                f.write(f"volume:{self.volume}\n")
+                f.write(f"muted:{self.muted}\n")
+        except (IOError, OSError):
+            pass
+
+    def apply_volume(self):
+        """Apply current volume and mute settings to music and sounds."""
+        effective_volume = 0.0 if self.muted else self.volume
+
+        # Apply to music
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.set_volume(effective_volume)
+
+        # Apply to all sound effects
+        for sound_name, sound in self.sounds.items():
+            if sound:
+                sound.set_volume(effective_volume)
 
     def create_stars(self):
         """Create star background."""
@@ -1023,6 +1072,48 @@ class Game:
                     if event.key == pygame.K_ESCAPE or event.key == pygame.K_RETURN:
                         self.game_state = "menu"
 
+                # Options screen
+                elif self.game_state == "options":
+                    if event.key in [pygame.K_w, pygame.K_UP]:
+                        self.options_selected = (self.options_selected - 1) % 2  # 2 options: volume and mute
+                    elif event.key in [pygame.K_s, pygame.K_DOWN]:
+                        self.options_selected = (self.options_selected + 1) % 2
+                    elif event.key in [pygame.K_a, pygame.K_LEFT]:
+                        # Decrease volume or toggle mute
+                        if self.options_selected == 0:  # Volume slider
+                            self.volume = max(0.0, self.volume - 0.1)
+                            self.apply_volume()
+                            self.save_settings()
+                        elif self.options_selected == 1:  # Mute toggle
+                            self.muted = not self.muted
+                            self.apply_volume()
+                            self.save_settings()
+                    elif event.key in [pygame.K_d, pygame.K_RIGHT]:
+                        # Increase volume or toggle mute
+                        if self.options_selected == 0:  # Volume slider
+                            self.volume = min(1.0, self.volume + 0.1)
+                            self.apply_volume()
+                            self.save_settings()
+                        elif self.options_selected == 1:  # Mute toggle
+                            self.muted = not self.muted
+                            self.apply_volume()
+                            self.save_settings()
+                    elif event.key == pygame.K_RETURN:
+                        # Toggle mute on enter for mute option
+                        if self.options_selected == 1:
+                            self.muted = not self.muted
+                            self.apply_volume()
+                            self.save_settings()
+                    elif event.key == pygame.K_ESCAPE:
+                        # Return to previous state
+                        if self.previous_state == "menu":
+                            self.game_state = "menu"
+                        elif self.previous_state == "pause":
+                            self.game_state = "playing"
+                            self.paused = True
+                        else:
+                            self.game_state = "menu"
+
                 # Playing game
                 elif self.game_state == "playing":
                     # Pause menu navigation
@@ -1103,6 +1194,10 @@ class Game:
             self.reset()
         elif selected == "Highscores":
             self.game_state = "highscores"
+        elif selected == "Options":
+            self.previous_state = "menu"
+            self.game_state = "options"
+            self.options_selected = 0
         elif selected == "Exit":
             self.running = False
 
@@ -1113,6 +1208,10 @@ class Game:
         if selected == "Resume":
             self.paused = False
             self.pause_selected = 0
+        elif selected == "Options":
+            self.previous_state = "pause"
+            self.game_state = "options"
+            self.options_selected = 0
         elif selected == "Main Menu":
             self.paused = False
             self.pause_selected = 0
@@ -1649,6 +1748,8 @@ class Game:
             self.draw_menu()
         elif self.game_state == "highscores":
             self.draw_highscores()
+        elif self.game_state == "options":
+            self.draw_options()
         elif self.game_state == "playing":
             self.draw_game()
         elif self.game_state == "game_over":
@@ -1729,7 +1830,7 @@ class Game:
         )
 
         # Draw menu options
-        menu_start_y = HEIGHT // 2 + 50
+        menu_start_y = HEIGHT // 2 - 20
         for i, option in enumerate(self.menu_options):
             # Highlight selected option
             if i == self.menu_selected:
@@ -1794,6 +1895,90 @@ class Game:
         # Draw back hint
         back_text = self.small_font.render(
             "Press ENTER or ESC to return", True, TEXT_COLOR
+        )
+        self.screen.blit(
+            back_text, (WIDTH // 2 - back_text.get_width() // 2, HEIGHT - 60)
+        )
+
+    def draw_options(self):
+        """Draw the options screen."""
+        self.screen.fill(BACKGROUND)
+
+        # Draw animated stars in background
+        for star in self.stars:
+            star.update(paused=False)
+            star.draw(self.screen)
+
+        # Draw title
+        title_text = self.title_font.render("OPTIONS", True, TEXT_COLOR)
+        self.screen.blit(
+            title_text, (WIDTH // 2 - title_text.get_width() // 2, 50)
+        )
+
+        # Options start position
+        start_y = 200
+
+        # Volume slider
+        volume_label = self.font.render("Volume", True, TEXT_COLOR)
+        if self.options_selected == 0:
+            volume_label = self.large_font.render("> Volume <", True, COMBO_COLOR)
+        self.screen.blit(
+            volume_label, (WIDTH // 2 - volume_label.get_width() // 2, start_y)
+        )
+
+        # Draw volume slider
+        slider_y = start_y + 60
+        slider_x = WIDTH // 2 - 150
+        slider_width = 300
+        slider_height = 20
+
+        # Slider background
+        pygame.draw.rect(
+            self.screen, (50, 50, 50), (slider_x, slider_y, slider_width, slider_height)
+        )
+
+        # Slider fill
+        fill_width = int(slider_width * self.volume)
+        pygame.draw.rect(
+            self.screen, COMBO_COLOR, (slider_x, slider_y, fill_width, slider_height)
+        )
+
+        # Slider border
+        pygame.draw.rect(
+            self.screen, TEXT_COLOR, (slider_x, slider_y, slider_width, slider_height), 2
+        )
+
+        # Volume percentage
+        volume_percent = int(self.volume * 100)
+        volume_text = self.font.render(f"{volume_percent}%", True, TEXT_COLOR)
+        self.screen.blit(
+            volume_text, (WIDTH // 2 - volume_text.get_width() // 2, slider_y + 30)
+        )
+
+        # Mute toggle
+        mute_y = start_y + 150
+        mute_status = "ON" if self.muted else "OFF"
+        mute_color = GAME_OVER_COLOR if self.muted else POWERUP_COLORS["shield"]
+
+        if self.options_selected == 1:
+            mute_label = self.large_font.render(f"> Mute: {mute_status} <", True, COMBO_COLOR)
+        else:
+            mute_label = self.font.render(f"Mute: {mute_status}", True, mute_color)
+
+        self.screen.blit(
+            mute_label, (WIDTH // 2 - mute_label.get_width() // 2, mute_y)
+        )
+
+        # Instructions
+        controls_text = self.small_font.render(
+            "W/S or Up/Down Arrow Keys: Navigate • A/D or Left/Right Arrow Keys: Adjust • ENTER: Toggle Mute", True, TEXT_COLOR
+        )
+        self.screen.blit(
+            controls_text, (WIDTH // 2 - controls_text.get_width() // 2, HEIGHT - 100)
+        )
+
+        back_text = self.small_font.render(
+            "Press ESC to return", True, TEXT_COLOR
         )
         self.screen.blit(
             back_text, (WIDTH // 2 - back_text.get_width() // 2, HEIGHT - 60)

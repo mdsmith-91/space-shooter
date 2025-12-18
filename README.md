@@ -15,9 +15,10 @@ An action-packed pygame-based space shooter where you control a ship, blast aste
 - **Pause menu**: Press ESC to pause with options to Resume or return to Main Menu
 
 ### Menu System & UI
-- **Main menu**: Professional title screen with Play, Highscores, and Exit options
+- **Main menu**: Professional title screen with Play, Highscores, Options, and Exit
 - **Top 10 leaderboard**: View the best players and their scores
-- **Pause menu**: Quick access to resume or return to main menu during gameplay
+- **Options menu**: Adjust audio settings (volume and mute) accessible from main menu or pause menu
+- **Pause menu**: Quick access to resume, options, or return to main menu during gameplay
 - **Keyboard navigation**: Full WASD/Arrow key navigation throughout all menus
 - **Visual feedback**: Highlighted selections and smooth menu transitions
 
@@ -48,11 +49,15 @@ Collect power-ups dropped by destroyed asteroids:
 - **Sound effects**: Laser shots, explosions, hits, power-up collection, shield activation
 - **Background music**: Looping soundtrack (when sound files are present)
 - **Boss warnings**: Special audio cue for boss encounters
+- **Volume control**: Adjustable volume slider (0-100%) in Options menu
+- **Mute toggle**: Quick mute/unmute option for all audio
+- **Settings persistence**: Audio preferences saved and restored between sessions
 
 ### Persistence
 - **Top 10 leaderboard**: Compete for a spot on the high score board
 - **Persistent storage**: High scores saved to `data/high_score.txt`
-- **Auto-save**: Scores automatically saved when you qualify for top 10
+- **Audio settings**: Volume and mute preferences saved to `data/settings.txt`
+- **Auto-save**: Scores and settings automatically saved
 
 ## How to Play
 
@@ -61,6 +66,7 @@ Collect power-ups dropped by destroyed asteroids:
 The game starts with a main menu where you can:
 - **Play** - Start a new game
 - **Highscores** - View the top 10 players
+- **Options** - Adjust audio settings (volume and mute)
 - **Exit** - Quit the game
 
 **Controls:**
@@ -70,13 +76,19 @@ The game starts with a main menu where you can:
 - `ENTER` - Select option
 - `ESC` - Return to menu (from highscores)
 
+*Options Menu:*
+- `W`/`S` or `↑`/`↓` - Navigate between Volume and Mute options
+- `A`/`D` or `←`/`→` - Adjust volume slider or toggle mute
+- `ENTER` - Toggle mute (when mute option is selected)
+- `ESC` - Return to previous menu
+
 *In Game:*
 - `W` / `↑` - Move ship up
 - `A` / `←` - Move ship left
 - `S` / `↓` - Move ship down
 - `D` / `→` - Move ship right
 - `SPACE` - Shoot laser
-- `ESC` - Open pause menu (Resume or Main Menu)
+- `ESC` - Open pause menu (Resume, Options, or Main Menu)
 - `R` - Restart after game over
 
 **Gameplay Tips:**
@@ -113,7 +125,8 @@ pip install -r requirements.txt
 │   └── workflows/
 │       └── build-windows.yml    # GitHub Actions build workflow
 ├── data/                        # Game save data (auto-created)
-│   └── high_score.txt           # Top 10 high scores
+│   ├── high_score.txt           # Top 10 high scores
+│   └── settings.txt             # Audio settings (volume, mute)
 ├── sounds/                      # Sound effects and music (optional)
 │   ├── laser.wav
 │   ├── explosion.wav
@@ -158,7 +171,10 @@ pip install -r requirements.txt
 
 ### Data Persistence
 - **High score storage**: Top 10 scores stored in `data/high_score.txt` (one per line)
-- **File format**: `{score}:{player_name}` per line, sorted descending
+- **Settings storage**: Audio preferences stored in `data/settings.txt`
+- **File formats**:
+  - High scores: `{score}:{player_name}` per line, sorted descending
+  - Settings: `volume:{0.0-1.0}` and `muted:{true/false}` per line
 - **Auto-creation**: `data/` directory created automatically on first run
 - **File handling**: Exception-safe I/O with fallback defaults
 

@@ -34,6 +34,12 @@ python src/main.py
 - W/S or ↑/↓: Navigate menu
 - ENTER: Select option
 
+*Options Menu:*
+- W/S or ↑/↓: Navigate between Volume and Mute
+- A/D or ←/→: Adjust volume or toggle mute
+- ENTER: Toggle mute
+- ESC: Return to previous menu
+
 *In Game:*
 - WASD or Arrow keys: Move ship
 - SPACE: Shoot laser
@@ -57,28 +63,39 @@ python src/main.py
 - **Power-ups**: 7 types (shield, rapid fire, spread shot, double damage, magnet, time slow, nuke)
 - **Explosions**: Visual effects with particle systems
 - **Stars**: Parallax scrolling background for visual depth
-- **Menu System**: Main menu with Play, Highscores, and Exit options
+- **Menu System**: Main menu with Play, Highscores, Options, and Exit
+  - Pause menu with Resume, Options, and Main Menu
+  - Options menu with volume slider and mute toggle
 - **High Score System**: Top 10 leaderboard stored in `data/high_score.txt`
+- **Settings System**: Audio preferences (volume, mute) stored in `data/settings.txt`
 
 **Collision Detection**:
 - Ship-asteroid: Circular collision detection using distance formula
 - Laser-asteroid: Rectangle-based collision detection
 
 **State Management**:
-- `game_state`: Tracks current screen ("menu", "playing", "game_over", "highscores")
+- `game_state`: Tracks current screen ("menu", "playing", "game_over", "highscores", "options")
 - `game_over`: Boolean flag for game over state
 - `paused`: Boolean flag for pause state
 - `name_input_active`: Controls high score name entry flow
+- `previous_state`: Tracks which menu opened the options (for navigation back)
+- `options_selected`: Index for options menu navigation (0=volume, 1=mute)
+- `volume`: Float (0.0-1.0) for audio volume percentage
+- `muted`: Boolean flag for mute state
 - Power-up timers and states for all active power-ups
 - Combo system with timeout tracking
 
 ## File Persistence
 
 - `data/high_score.txt`: Stores top 10 high scores, one per line
-- Format: `{score}:{player_name}` (e.g., "14455:Michael")
+  - Format: `{score}:{player_name}` (e.g., "14455:Michael")
+  - Scores are automatically sorted and limited to top 10
+  - File is read on startup and written when a new high score qualifies
+- `data/settings.txt`: Stores audio settings, one per line
+  - Format: `volume:{0.0-1.0}` and `muted:{true/false}`
+  - File is read on startup and written when settings change
+  - Settings apply to both music and all sound effects
 - The `data/` directory is auto-created on first run
-- Scores are automatically sorted and limited to top 10
-- File is read on startup and written when a new high score qualifies
 
 ## Development Notes
 
@@ -90,6 +107,11 @@ python src/main.py
   - In bundled .exe: Loads from PyInstaller's temporary extraction folder (`sys._MEIPASS`)
   - Critical for sound files to work in Windows .exe builds
   - All resource paths should use `resource_path("relative/path")` instead of direct paths
+- **Audio Settings**:
+  - `load_settings()` reads settings from file on game startup
+  - `save_settings()` writes settings to file when changed
+  - `apply_volume()` applies current volume/mute to pygame.mixer.music and all Sound objects
+  - Volume changes take effect immediately via `apply_volume()` call
 
 ## Building for Distribution
 
