@@ -1,191 +1,260 @@
-# Space Shooter Game
+# Space Shooter Game 🚀
 
 An action-packed pygame-based space shooter where you control a ship, blast asteroids, collect power-ups, and battle epic bosses!
 
-## What's New in v1.4
+[![Python Version](https://img.shields.io/badge/python-3.8%2B-blue)](https://www.python.org/downloads/)
+[![pygame-ce](https://img.shields.io/badge/pygame--ce-2.5%2B-green)](https://pyga.me/)
+[![License](https://img.shields.io/badge/license-Educational-orange)](LICENSE)
+
+---
+
+## 📋 Table of Contents
+
+- [Quick Start](#-quick-start)
+- [What's New](#-whats-new)
+- [Features](#-features)
+- [Controls](#-controls)
+- [Gameplay Tips](#-gameplay-tips)
+- [Installation](#-installation)
+- [Building for Distribution](#-building-for-distribution)
+- [Technical Details](#-technical-details)
+- [Development](#-development)
+
+---
+
+## ⚡ Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/mdsmith-91/space-shooter.git
+cd space-shooter
+
+# Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate  # On macOS/Linux
+# OR
+.venv\Scripts\activate     # On Windows
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Run the game
+python src/main.py
+```
+
+**That's it!** Use WASD/Arrows to move, SPACE to shoot, ESC to pause.
+
+---
+
+## 🎉 What's New
+
+### Version 1.4.0 (Latest)
 
 **Major Performance & Architecture Improvements:**
-- 🏗️ **PowerUpManager class** - Elegant new architecture replaces 60+ lines of repetitive code with clean class-based design
+- 🏗️ **PowerUpManager class** - Elegant new architecture replaces 60+ lines of repetitive code
 - ⚡ **50% fewer particles** - Laser trail particles reduced for smoother performance
 - 🚀 **Optimized time slow** - Rewrote asteroid update system for better efficiency
-- 🛡️ **Smart asteroid limiting** - Prevents performance issues when asteroids break into pieces
+- 🛡️ **Smart asteroid limiting** - Prevents performance issues when asteroids break
 
 **Critical Bug Fixes:**
 - 🔊 Fixed music volume not applying on game startup
-- 💥 Fixed nuke power-up ignoring combo multipliers (now properly awards bonus points!)
+- 💥 Fixed nuke power-up ignoring combo multipliers
 - 📝 Fixed potential UI overflow from long player names
 
 **Gameplay Balance:**
-- 👾 **Bosses appear every 2500 points** (was 500) - compensates for v1.3's 5x scoring increase
-- 🎯 **Smoother difficulty curve** - Extended to 100,000 points with 0.1 increments (was 10,000 with 0.2)
+- 👾 **Bosses every 2500 points** (was 500) - compensates for v1.3's 5x scoring increase
+- 🎯 **Smoother difficulty curve** - Extended to 100K points with 0.1 increments
 - ⏱️ **Harder combos** - 2-second window (down from 3) rewards skilled play
 - 🔥 **10x combo multiplier** - New tier for sustained 6+ kill chains (was 8x max)
 - 📊 **Difficulty HUD display** - See your current speed multiplier on screen
 
-**Code Quality:**
-- Removed unused variables and constants
-- Added descriptive names for all "magic numbers"
-- Professional architecture makes future updates easier
-
-## What's New in v1.3
+<details>
+<summary><b>Version 1.3.0 Changelog</b></summary>
 
 **Gameplay Improvements:**
-- 🎯 **Score-based difficulty** - Difficulty now scales with your performance at milestones (100, 250, 500+)
-- 💰 **5x better scoring** - Asteroids worth 10-25 points (up from 2-5) for more rewarding gameplay
-- ⏱️ **Extended combos** - 3-second window (up from 2) makes combos more forgiving
-- 🔄 **Power-up stacking** - Collecting duplicates extends duration up to 2x (14 seconds max)
-- 💪 **Longer power-ups** - Most now last 7 seconds (up from 5) for better value
-- 🎲 **5 boss patterns** - Added zigzag and spiral movements for more variety
-- 📈 **Scaling bosses** - Boss health increases with difficulty (15-45 HP) for late-game challenge
-
-**Balance Changes:**
-- Double damage now correctly splits asteroids (was breaking them completely)
-- Nuke damage to bosses reduced from 5 to 3 HP for better balance
-- Shield still lasts 10 seconds while combat power-ups increased to 7 seconds
+- 🎯 Score-based difficulty scaling at milestones
+- 💰 5x better scoring (10-25 points per asteroid)
+- 🔄 Power-up stacking up to 2x duration
+- 💪 Longer power-ups (7 seconds, shield 10 seconds)
+- 🎲 5 boss movement patterns (added zigzag and spiral)
+- 📈 Scaling boss health (15-45 HP based on difficulty)
 
 **Bug Fixes:**
-- Fixed crash when ship collides with asteroids during iteration
-- Fixed high score file corruption from special characters in names
-- Fixed shield sound effect playing incorrect audio
+- Fixed ship-asteroid collision crash
+- Fixed high score file corruption
+- Fixed shield sound effect
 
 **Performance:**
-- Optimized font rendering (no more per-frame creation)
-- Added collision detection early-exit for 50% fewer checks
-- Smoother 60 FPS even with many power-ups on screen
+- Optimized font rendering
+- Collision detection early-exit
+- Smooth 60 FPS with many effects
 
-## Features
+</details>
 
-### Core Gameplay
-- **Dual control schemes**: WASD or Arrow keys for movement
-- **Laser combat**: Shoot lasers with spacebar to destroy asteroids
-- **Lives system**: Start with 3 lives and temporary invulnerability after taking damage
-- **Breaking asteroids**: Large and medium asteroids split into smaller pieces when destroyed
-- **Rotating asteroids**: Visual rotation effects with detailed crater graphics
-- **Skill-based difficulty**: Difficulty scales with your score milestones up to 100,000 points with gradual 0.1 increments
-- **Combo system**: Chain asteroid kills for score multipliers (up to 10x!) with 2-second skill-based window
-- **Rewarding scoring**: Asteroids worth 10-25 points based on size for satisfying progression
-- **Difficulty display**: Live speed multiplier shown on HUD
-- **Pause menu**: Press ESC to pause with options to Resume or return to Main Menu
+---
 
-### Menu System & UI
-- **Main menu**: Professional title screen with Play, Highscores, Options, and Exit
-- **Top 10 leaderboard**: View the best players and their scores
-- **Options menu**: Adjust audio settings (volume and mute) accessible from main menu or pause menu
-- **Pause menu**: Quick access to resume, options, or return to main menu during gameplay
-- **Keyboard navigation**: Full WASD/Arrow key navigation throughout all menus
-- **Visual feedback**: Highlighted selections and smooth menu transitions
+## ✨ Features
 
-### Power-Ups
-Collect power-ups dropped by destroyed asteroids (all last 7 seconds except Shield at 10 seconds):
-- **Shield**: Absorbs one hit from asteroids or bosses (10 seconds)
-- **Rapid Fire**: Shoot lasers faster for a limited time (7 seconds)
-- **Spread Shot**: Fire 3 lasers at once in a spread pattern (7 seconds)
-- **Double Damage**: Deal 2x damage and earn 2x points (7 seconds)
-- **Magnet**: Attract nearby power-ups automatically (7 seconds)
-- **Time Slow**: Slow down asteroids to half speed (7 seconds)
-- **Nuke**: Instantly destroy all asteroids and deal heavy boss damage (rare!)
-- **Stacking**: Collecting the same power-up extends its duration up to 2x maximum (14 seconds for most)
+### 🎮 Core Gameplay
+- **Dual control schemes** - WASD or Arrow keys
+- **Lives system** - 3 lives with invulnerability frames after damage
+- **Dynamic difficulty** - Scales from 0 to 100K points across 21 milestones
+- **Combo system** - Chain kills for up to **10x multiplier** (2-second window)
+- **Smart scoring** - Asteroids worth 10-25 points based on size
+- **Asteroid breaking** - Large/medium asteroids split into smaller pieces
+- **Difficulty display** - Live speed multiplier shown on HUD
 
-### Epic Boss Fights
-- **Boss warnings**: Screen alerts before boss arrival every 2500 points
-- **5 unique patterns**: Bosses use sine wave, circular, figure-8, zigzag, or spiral movement patterns
-- **Scaling difficulty**: Boss health increases with your difficulty level (15-45 HP)
-- **Health bars**: Track boss health with visual indicators
-- **Stay and fight**: Bosses remain on screen until defeated - no running away!
-- **Big rewards**: Defeating bosses grants 500 points and guaranteed power-ups
+### 👾 Epic Boss Fights
+- **Boss spawn** - Every 2500 points with screen warnings
+- **5 unique patterns** - Sine wave, circular, figure-8, zigzag, spiral
+- **Scaling difficulty** - Health increases from 15 HP to 45 HP
+- **Stay and fight** - Bosses orbit on screen until defeated
+- **Big rewards** - 500 points + guaranteed power-up drops
 
-### Visual Effects
-- **Particle systems**: Engine thrust, debris, laser trails, impact sparks, and power-up glows
-- **Screen shake**: Dynamic camera shake on hits and explosions
-- **Explosion animations**: Multi-layered explosions with transparency
-- **Parallax scrolling**: Multi-depth star field background
+### 💪 Power-Ups
+Collect rotating colored squares dropped by destroyed asteroids:
 
-### Audio
-- **Sound effects**: Laser shots, explosions, hits, power-up collection, shield activation
-- **Background music**: Looping soundtrack (when sound files are present)
-- **Boss warnings**: Special audio cue for boss encounters
-- **Volume control**: Adjustable volume slider (0-100%) in Options menu
-- **Mute toggle**: Quick mute/unmute option for all audio
-- **Settings persistence**: Audio preferences saved and restored between sessions
+| Power-Up | Duration | Effect |
+|----------|----------|--------|
+| 🟢 **Shield** | 10 sec | Absorbs one hit from any source |
+| 🟡 **Rapid Fire** | 7 sec | Shoot lasers faster |
+| 🟣 **Spread Shot** | 7 sec | Fire 3 lasers at once |
+| 🩷 **Double Damage** | 7 sec | Deal 2x damage, earn 2x points |
+| 🟣 **Magnet** | 7 sec | Attract power-ups automatically |
+| 🔵 **Time Slow** | 7 sec | Slow asteroids to half speed |
+| 🔴 **Nuke** | Instant | Destroy all asteroids (rare!) |
 
-### Persistence
-- **Top 10 leaderboard**: Compete for a spot on the high score board
-- **Persistent storage**: High scores saved to `data/high_score.txt`
-- **Audio settings**: Volume and mute preferences saved to `data/settings.txt`
-- **Auto-save**: Scores and settings automatically saved
+**Stacking:** Collecting the same power-up extends duration up to 2x max (14/20 seconds)
 
-## How to Play
+### 🎨 Visual & Audio
+- **Particle systems** - Engine thrust, debris, laser trails, impacts, glows
+- **Screen shake** - Dynamic camera shake on hits and explosions
+- **Parallax scrolling** - Multi-depth star field background
+- **Sound effects** - Lasers, explosions, hits, power-ups, shields, boss warnings
+- **Background music** - Looping soundtrack (when sound files present)
+- **Volume controls** - Adjustable volume (0-100%) and mute toggle in Options
 
-**Run:** `python src/main.py`
+### 📊 Menus & Persistence
+- **Main menu** - Play, Highscores, Options, Exit
+- **Pause menu** - Resume, Options, Main Menu (press ESC in-game)
+- **Options menu** - Volume slider and mute toggle
+- **Top 10 leaderboard** - High scores saved to `data/high_score.txt`
+- **Settings persistence** - Audio preferences saved to `data/settings.txt`
+- **Full keyboard navigation** - WASD/Arrows throughout all menus
 
-The game starts with a main menu where you can:
-- **Play** - Start a new game
-- **Highscores** - View the top 10 players
-- **Options** - Adjust audio settings (volume and mute)
-- **Exit** - Quit the game
+---
 
-**Controls:**
+## 🎮 Controls
 
-*Main Menu & Highscores:*
-- `W`/`S` or `↑`/`↓` - Navigate options
-- `ENTER` - Select option
-- `ESC` - Return to menu (from highscores)
+### Main Menu / Highscores / Pause Menu
+| Key | Action |
+|-----|--------|
+| `W` `S` or `↑` `↓` | Navigate menu options |
+| `ENTER` | Select option |
+| `ESC` | Go back / Resume (in pause menu) |
 
-*Options Menu:*
-- `W`/`S` or `↑`/`↓` - Navigate between Volume and Mute options
-- `A`/`D` or `←`/`→` - Adjust volume slider or toggle mute
-- `ENTER` - Toggle mute (when mute option is selected)
-- `ESC` - Return to previous menu
+### Options Menu
+| Key | Action |
+|-----|--------|
+| `W` `S` or `↑` `↓` | Navigate between Volume and Mute |
+| `A` `D` or `←` `→` | Adjust volume / Toggle mute |
+| `ENTER` | Toggle mute |
+| `ESC` | Return to previous menu |
 
-*In Game:*
-- `W` / `↑` - Move ship up
-- `A` / `←` - Move ship left
-- `S` / `↓` - Move ship down
-- `D` / `→` - Move ship right
-- `SPACE` - Shoot laser
-- `ESC` - Open pause menu (Resume, Options, or Main Menu)
-- `R` - Restart after game over
+### In-Game
+| Key | Action |
+|-----|--------|
+| `W` or `↑` | Move ship up |
+| `A` or `←` | Move ship left |
+| `S` or `↓` | Move ship down |
+| `D` or `→` | Move ship right |
+| `SPACE` | Shoot laser |
+| `ESC` | Open pause menu |
+| `R` | Restart (after game over) |
 
-**Gameplay Tips:**
-- **Combo chains**: You have 2 seconds between kills to maintain your combo - stay aggressive and precise!
-- **10x combos**: Reach 6+ kill chains for the maximum 10x score multiplier
-- **Power-up stacking**: Collecting duplicate power-ups extends their duration - grab them all!
-- **Power-up priority**: Shield and Spread Shot are great for survival; Double Damage for high scores
-- **Boss strategy**: Bosses appear every 2500 points and get tougher with difficulty - save your best power-ups
-- **Breaking asteroids**: Large asteroids split into smaller ones and are worth more points (25 vs 10)
-- **Lives management**: You have 3 lives with brief invulnerability after each hit
-- **Score milestones**: Difficulty scales smoothly from 0 to 100,000 points with 21 milestones
-- **Watch the HUD**: The speed multiplier display shows how fast asteroids are moving
+---
 
-## Setup
+## 💡 Gameplay Tips
+
+### Mastering Combos
+- 🎯 **2-second window** - You have 2 seconds between kills to maintain combo
+- 🔥 **10x multiplier** - Reach 6+ consecutive kills for maximum scoring
+- ⚡ **Stay aggressive** - Chain kills quickly for massive point bonuses
+
+### Power-Up Strategy
+- 🟢 **Shield + Spread Shot** - Best for survival
+- 🩷 **Double Damage** - Maximum scoring potential
+- 🎁 **Stack duplicates** - Extend duration up to 2x for sustained power
+- 🧲 **Magnet synergy** - Makes collecting other power-ups easier
+
+### Boss Encounters
+- 👾 **Spawn every 2500 points** - Save your best power-ups
+- 💪 **Scale with difficulty** - Later bosses have 3x more health
+- 🎯 **Orbit patterns** - Learn the 5 movement patterns to predict positions
+- 🔴 **Nuke strategy** - Deals 3 damage (20% of base health)
+
+### Difficulty Management
+- 📊 **Watch the HUD** - Speed multiplier shows asteroid velocity
+- 🎢 **21 milestones** - Difficulty scales smoothly from 0 to 100K points
+- 🎯 **3.0x maximum** - Speed caps at 100,000 points
+- 💎 **Large asteroids** - Worth 25 points but split into smaller ones
+
+### Survival Tips
+- 💚 **3 lives total** - Brief invulnerability after each hit
+- 🌟 **Break asteroids** - Large (25pts) → Medium (15pts) → Small (10pts)
+- 🏃 **Keep moving** - Stationary targets are easy hits
+- 👀 **Watch the right** - Asteroids spawn from the right side
+
+---
+
+## 📦 Installation
 
 ### Prerequisites
-- Python 3.8+ (developed with Python 3.14.2)
+- **Python 3.8+** (developed with Python 3.14.2)
+- **pip** (Python package manager)
 
-### Installation
+### Setup Steps
 
-1. Create and activate virtual environment:
+1. **Clone the repository**
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate  # On macOS/Linux
+git clone https://github.com/mdsmith-91/space-shooter.git
+cd space-shooter
 ```
 
-2. Install dependencies:
+2. **Create virtual environment**
+```bash
+python3 -m venv .venv
+
+# Activate on macOS/Linux
+source .venv/bin/activate
+
+# Activate on Windows
+.venv\Scripts\activate
+```
+
+3. **Install dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-## Project Structure
+This installs **pygame-ce** (Community Edition) - a modern, actively maintained fork of pygame.
+
+4. **Run the game**
+```bash
+python src/main.py
+```
+
+### Project Structure
 
 ```
-.
+space-shooter/
 ├── .github/
 │   └── workflows/
-│       └── build-windows.yml    # GitHub Actions build workflow
-├── data/                        # Game save data (auto-created)
+│       └── build-windows.yml    # Automated Windows builds
+├── data/                        # Auto-created on first run
 │   ├── high_score.txt           # Top 10 high scores
-│   └── settings.txt             # Audio settings (volume, mute)
-├── sounds/                      # Sound effects and music (optional)
+│   └── settings.txt             # Audio settings
+├── sounds/                      # Optional sound files
 │   ├── laser.wav
 │   ├── explosion.wav
 │   ├── explosion_big.wav
@@ -195,77 +264,143 @@ pip install -r requirements.txt
 │   ├── boss_warning.wav
 │   └── music.wav
 ├── src/
-│   └── main.py                  # Main game file (2000+ lines)
-├── BUILD.md                     # Build instructions for Windows .exe
-├── build_windows.bat            # Automated Windows build script
-├── CLAUDE.md                    # Project guidance for Claude Code
-├── DISTRIBUTE_README.txt        # End-user instructions for .exe
-├── requirements.txt             # Python dependencies (pygame-ce)
+│   └── main.py                  # Main game file (~2300 lines)
+├── BUILD.md                     # Windows .exe build guide
+├── build_windows.bat            # Windows build script
+├── CLAUDE.md                    # AI assistant guidance
+├── DISTRIBUTE_README.txt        # End-user instructions
+├── requirements.txt             # Python dependencies
 └── README.md                    # This file
 ```
 
-## Technical Details
+---
 
-### Game Architecture
-- **Event-driven game loop**: 60 FPS using pygame clock
-- **Object-oriented design**: Separate classes for Ship, Asteroid, Boss, Laser, PowerUp, PowerUpManager, Explosion, Star, and Particle
-- **PowerUpManager**: Centralized power-up state management with clean API (v1.4)
-- **Collision detection**:
-  - Circular detection for ship-asteroid and ship-boss collisions
-  - Rectangle-based detection for laser-asteroid and laser-boss hits
-  - Early-exit optimizations for improved performance
-- **State management**: Game state, power-up timers via manager, combo system, boss spawning
-- **Particle system**: Optimized dynamic particle generation for visual effects
-- **Screen effects**: Camera shake with configurable intensity and duration
-- **Resource loading**: PyInstaller-compatible `resource_path()` helper for bundled executables
+## 📦 Building for Distribution
 
-### Key Game Mechanics
-- **Asteroid breaking**: Large/medium asteroids split into 2-3 smaller pieces with spread velocities; respects MAX_ASTEROIDS limit (v1.4)
-- **Asteroid scoring**: Points scale by size - Large: 25pts, Medium: 15pts, Small: 10pts
-- **Boss spawn system**: Bosses appear every 2500 points (v1.4) with warning sequences; stay on screen until defeated
-- **Boss movement**: 5 unique patterns - sine wave, circular, figure-8, zigzag, and spiral
-- **Boss scaling**: Health increases with difficulty level (15 HP at 1.0x → 45 HP at 3.0x difficulty)
-- **Combo multipliers**: 1x → 2x → 3x → 5x → 8x → 10x scoring based on kill chains (2-second window, v1.4)
-- **Power-up duration**: Most power-ups last 7 seconds (420 frames), Shield lasts 10 seconds (600 frames)
-- **Power-up stacking**: Collecting duplicates extends duration up to 2x maximum (14/20 seconds)
-- **Power-up management**: Centralized PowerUpManager class for clean architecture (v1.4)
-- **Difficulty scaling**: Score-based progression with 21 milestones from 0-100,000 points, 0.1 increments up to 3.0x max (v1.4)
-- **Difficulty display**: Live speed multiplier shown on HUD in golden color (v1.4)
-- **Invulnerability**: 2 seconds (120 frames) after taking damage
-- **Sound system**: Graceful degradation with PyInstaller support; fixed volume initialization bug (v1.4)
-- **Performance optimizations**: Font caching, collision early-exit, 50% fewer particles, optimized time slow (v1.4)
-
-### Data Persistence
-- **High score storage**: Top 10 scores stored in `data/high_score.txt` (one per line)
-- **Settings storage**: Audio preferences stored in `data/settings.txt`
-- **File formats**:
-  - High scores: `{score}:{player_name}` per line, sorted descending
-  - Settings: `volume:{0.0-1.0}` and `muted:{true/false}` per line
-- **Auto-creation**: `data/` directory created automatically on first run
-- **File handling**: Exception-safe I/O with fallback defaults
-
-## Building for Distribution
-
-Want to share the game with others who don't have Python installed?
+Want to share the game with users who don't have Python installed?
 
 ### Windows Executable
 
-See [BUILD.md](BUILD.md) for detailed instructions on creating a standalone Windows .exe file.
+**Option 1: Automated (GitHub Actions)**
+- Push to GitHub
+- Workflow automatically builds Windows .exe
+- Download from Actions artifacts or Releases
 
-**Quick Start (on Windows):**
+**Option 2: Manual Build (Windows only)**
 ```cmd
 build_windows.bat
 ```
+Find executable at `dist/SpaceShooter.exe`
 
-**Using GitHub Actions:**
-Push to GitHub and the workflow will automatically build Windows executables for you.
+**Detailed Instructions:** See [BUILD.md](BUILD.md)
 
-## Development
+---
 
-Built with:
-- **pygame-ce** (Community Edition) - Game engine and graphics
-- **Python 3.14.2** - Programming language
+## 🔧 Technical Details
 
-## License
+### Architecture
 
-Educational/Learning purposes
+**Game Loop (60 FPS)**
+- Event handling → State updates → Rendering → Clock tick
+
+**Classes**
+- `Ship` - Player spaceship with movement and damage
+- `Asteroid` - Obstacles with breaking mechanics
+- `Boss` - Epic enemies with movement patterns
+- `Laser` - Player projectiles
+- `PowerUp` - Collectible enhancements
+- `PowerUpManager` - Centralized power-up state (v1.4)
+- `Explosion` - Particle-based visual effects
+- `Star` - Parallax background elements
+- `Particle` - Generic particle system
+
+**Collision Detection**
+- Circular: Ship ↔ Asteroid, Ship ↔ Boss
+- Rectangle: Laser ↔ Asteroid, Laser ↔ Boss
+- Early-exit optimizations for performance
+
+**State Management**
+- Game states: menu, playing, game_over, highscores, options
+- Power-up timers via PowerUpManager
+- Combo system with 2-second timeout
+- Boss spawning at 2500-point intervals
+
+### Game Mechanics
+
+**Scoring System**
+- Small asteroids: 10 points
+- Medium asteroids: 15 points
+- Large asteroids: 25 points
+- Boss defeat: 500 points
+- Combo multipliers: 1x, 2x, 3x, 5x, 8x, 10x
+
+**Difficulty Scaling**
+- 21 milestones from 0 to 100,000 points
+- 0.1 increment per milestone
+- Caps at 3.0x speed multiplier
+- Affects: asteroid speed, spawn rate, boss health
+
+**Power-Up System**
+- Base duration: 7 seconds (420 frames), Shield: 10 seconds (600 frames)
+- Stacking: Up to 2x duration maximum
+- Managed by PowerUpManager class (v1.4)
+
+**Performance Optimizations**
+- Font caching (pre-rendered text)
+- Particle spawn reduction (50% fewer laser trails)
+- Collision early-exit (skip already-removed objects)
+- Optimized time slow (time_scale parameter vs velocity modification)
+- MAX_ASTEROIDS limit enforcement
+
+### Data Persistence
+
+**High Scores** (`data/high_score.txt`)
+- Format: `score:player_name` per line
+- Top 10 scores, sorted descending
+- Input sanitization (rejects colons/newlines)
+
+**Settings** (`data/settings.txt`)
+- Format: `volume:0.0-1.0` and `muted:true/false`
+- Loaded on startup, saved on change
+- Applies to all audio (music + sound effects)
+
+**Resource Loading**
+- `resource_path()` helper for PyInstaller compatibility
+- Works in both development and bundled .exe
+- Critical for sound files in distributed builds
+
+---
+
+## 👨‍💻 Development
+
+### Built With
+- **[pygame-ce](https://pyga.me/)** - Community Edition game engine
+- **[Python 3.14.2](https://www.python.org/)** - Programming language
+- **[PyInstaller](https://pyinstaller.org/)** - Executable bundling
+
+### Code Quality
+- Object-oriented design with clear separation of concerns
+- ~2300 lines of well-commented Python
+- PowerUpManager architecture for maintainability (v1.4)
+- Named constants (no magic numbers)
+- Exception-safe file I/O
+
+### Contributing
+This is a personal learning project, but feel free to:
+- Report bugs via [GitHub Issues](https://github.com/mdsmith-91/space-shooter/issues)
+- Fork and experiment
+- Share your high scores!
+
+---
+
+## 📄 License
+
+This project is for **educational and learning purposes**.
+
+---
+
+## 🎮 Have Fun!
+
+Enjoy the game and good luck beating the high score! 🚀
+
+**Repository:** [github.com/mdsmith-91/space-shooter](https://github.com/mdsmith-91/space-shooter)
