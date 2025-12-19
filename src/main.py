@@ -149,6 +149,39 @@ HIGH_SCORE_FILE = os.path.join(DATA_DIR, "high_score.txt")
 SETTINGS_FILE = os.path.join(DATA_DIR, "settings.txt")
 MAX_NAME_LENGTH = 15
 
+# Score popup settings
+SCORE_POPUP_LIFETIME = 60  # 1 second
+SCORE_POPUP_RISE_SPEED = -1.5
+
+# Nebula settings
+NEBULA_COUNT = 5
+NEBULA_MIN_SIZE = 100
+NEBULA_MAX_SIZE = 300
+NEBULA_COLORS = [(50, 20, 80, 80), (20, 50, 80, 80), (80, 20, 50, 80)]  # RGBA with alpha
+
+# Distortion wave settings
+DISTORTION_MAX_RADIUS = 400
+DISTORTION_LIFETIME = 60
+
+# UI animation settings
+COMBO_PULSE_SPEED = 10
+SCAN_LINE_SPEED = 2
+
+# Color theme thresholds
+THEME_BLUE_MAX = 1000
+THEME_PURPLE_MAX = 5000
+THEME_RED_MIN = 5000
+
+# Hexagon shield settings
+HEXAGON_RADIUS = 15
+HEXAGON_LAYERS = 3
+
+# Laser trail settings
+LASER_TRAIL_LENGTH = 5  # Number of trail segments
+
+# Asteroid motion blur settings
+MOTION_BLUR_POSITIONS = 3  # Number of ghost images
+
 # =============================================================================
 # CLASSES
 # =============================================================================
@@ -196,76 +229,251 @@ class Ship:
                 self.has_shield = False
 
     def draw(self, screen):
-        """Draw the ship."""
+        """Draw the ship with enhanced graphics and details."""
         # Flickering effect when invulnerable
         if self.invulnerable and pygame.time.get_ticks() % 200 < 100:
             return
 
         # Choose ship color (red flash when damaged)
-        ship_color = SHIP_DAMAGE_COLOR if self.damage_flash_timer > 0 else SHIP_COLOR
+        is_damaged = self.damage_flash_timer > 0
+        base_color = SHIP_DAMAGE_COLOR if is_damaged else SHIP_COLOR
 
-        # Main ship body (oriented to point east)
+        # Draw ship glow/aura (subtle outer glow)
+        glow_surface = pygame.Surface((self.width * 2, self.height * 2), pygame.SRCALPHA)
+        glow_radius = max(self.width, self.height) // 2
+        for i in range(3):
+            alpha = 20 - i * 7
+            glow_color = (*base_color, alpha)
+            pygame.draw.ellipse(
+                glow_surface,
+                glow_color,
+                (self.width // 2 - glow_radius - i * 3, self.height - glow_radius - i * 3,
+                 glow_radius * 2 + i * 6, glow_radius * 2 + i * 6)
+            )
+        screen.blit(glow_surface, (int(self.x - self.width // 2), int(self.y - self.height)))
+
+        # Draw engine thrusters at the back (left side)
+        thruster_width = 8
+        thruster_height = 5
+        # Top thruster
+        pygame.draw.rect(screen, (50, 50, 60),
+                        (self.x - 2, self.y - self.height // 2 - 2, thruster_width, thruster_height))
+        # Bottom thruster
+        pygame.draw.rect(screen, (50, 50, 60),
+                        (self.x - 2, self.y + self.height // 2 - 3, thruster_width, thruster_height))
+
+        # Engine glow (animated)
+        glow_pulse = (math.sin(pygame.time.get_ticks() / 100) + 1) / 2
+        engine_glow = int(100 + glow_pulse * 100)
+        engine_color = (100, 150, 255) if not is_damaged else (255, 150, 100)
+
+        # Top engine glow
+        for i in range(3):
+            alpha = engine_glow - i * 30
+            if alpha > 0:
+                glow_surf = pygame.Surface((thruster_width + i * 2, thruster_height + i * 2), pygame.SRCALPHA)
+                glow_surf.fill((*engine_color, alpha))
+                screen.blit(glow_surf, (self.x - 2 - i, self.y - self.height // 2 - 2 - i))
+
+        # Bottom engine glow
+        for i in range(3):
+            alpha = engine_glow - i * 30
+            if alpha > 0:
+                glow_surf = pygame.Surface((thruster_width + i * 2, thruster_height + i * 2), pygame.SRCALPHA)
+                glow_surf.fill((*engine_color, alpha))
+                screen.blit(glow_surf, (self.x - 2 - i, self.y + self.height // 2 - 3 - i))
+
+        # Create gradient layers for main ship body with better shading
+        for i in range(4):
+            # Calculate gradient color (darker to lighter from bottom to top)
+            blend_factor = (i + 1) / 5.0
+            gradient_color = tuple(int(c * (0.5 + blend_factor * 0.5)) for c in base_color)
+
+            # Offset each layer slightly for gradient effect
+            offset_y = -2 + i * 0.7
+            pygame.draw.polygon(
+                screen,
+                gradient_color,
+                [
+                    (self.x + self.width, self.y + offset_y),
+                    (self.x, self.y - self.height // 2 + offset_y),
+                    (self.x, self.y + self.height // 2 + offset_y),
+                ],
+            )
+
+        # Add panel details (surface segments)
+        panel_color = tuple(int(c * 0.7) for c in base_color)
+        # Top panel
         pygame.draw.polygon(
             screen,
-            ship_color,
+            panel_color,
             [
-                (self.x + self.width, self.y),
-                (self.x, self.y - self.height // 2),
-                (self.x, self.y + self.height // 2),
-            ],
+                (self.x + self.width * 0.6, self.y - 2),
+                (self.x + self.width * 0.3, self.y - self.height // 4),
+                (self.x + self.width * 0.5, self.y - self.height // 4),
+            ]
+        )
+        # Bottom panel
+        pygame.draw.polygon(
+            screen,
+            panel_color,
+            [
+                (self.x + self.width * 0.6, self.y + 2),
+                (self.x + self.width * 0.3, self.y + self.height // 4),
+                (self.x + self.width * 0.5, self.y + self.height // 4),
+            ]
         )
 
-        # Ship cockpit
+        # Add metallic edge highlights
+        highlight_color = (min(255, base_color[0] + 120), min(255, base_color[1] + 120), min(255, base_color[2] + 120))
+        # Top edge
+        pygame.draw.aalines(
+            screen,
+            highlight_color,
+            False,
+            [
+                (self.x, self.y - self.height // 2),
+                (self.x + self.width, self.y),
+            ]
+        )
+        # Bottom edge (darker)
+        shadow_color = tuple(int(c * 0.6) for c in base_color)
+        pygame.draw.aalines(
+            screen,
+            shadow_color,
+            False,
+            [
+                (self.x, self.y + self.height // 2),
+                (self.x + self.width, self.y),
+            ]
+        )
+
+        # Ship wings with gradient and details
+        wing_color = SHIP_WING_COLOR if not is_damaged else tuple(int(c * 0.8) for c in SHIP_DAMAGE_COLOR)
+        for i in range(2):
+            blend = (i + 1) / 3.0
+            wing_gradient = tuple(int(c * (0.6 + blend * 0.4)) for c in wing_color)
+
+            # Top wing
+            pygame.draw.polygon(
+                screen,
+                wing_gradient,
+                [
+                    (self.x + self.width // 2, self.y - self.height + i),
+                    (self.x, self.y - self.height // 2 + i),
+                    (self.x + self.width // 2, self.y + i),
+                ],
+            )
+            # Wing detail line
+            wing_detail_color = tuple(min(255, int(c * 1.2)) for c in wing_gradient)
+            pygame.draw.aaline(
+                screen,
+                wing_detail_color,
+                (self.x + self.width // 4, self.y - self.height * 0.75),
+                (self.x + self.width // 2, self.y - self.height // 4)
+            )
+
+            # Bottom wing
+            pygame.draw.polygon(
+                screen,
+                wing_gradient,
+                [
+                    (self.x + self.width // 2, self.y + self.height - i),
+                    (self.x, self.y + self.height // 2 - i),
+                    (self.x + self.width // 2, self.y - i),
+                ],
+            )
+            # Wing detail line
+            pygame.draw.aaline(
+                screen,
+                wing_detail_color,
+                (self.x + self.width // 4, self.y + self.height * 0.75),
+                (self.x + self.width // 2, self.y + self.height // 4)
+            )
+
+        # Ship cockpit with better shading
+        cockpit_color = SHIP_COCKPIT_COLOR if not is_damaged else tuple(int(c * 0.9) for c in SHIP_DAMAGE_COLOR)
+
+        # Main cockpit circle
         pygame.draw.circle(
             screen,
-            SHIP_COCKPIT_COLOR,
+            cockpit_color,
             (self.x + self.width // 4, self.y),
             self.width // 3,
         )
 
-        # Ship wings
-        pygame.draw.polygon(
+        # Cockpit window/glass effect (lighter circle on top)
+        window_color = (min(255, cockpit_color[0] + 100), min(255, cockpit_color[1] + 120), min(255, cockpit_color[2] + 150))
+        pygame.draw.circle(
             screen,
-            SHIP_WING_COLOR,
-            [
-                (self.x + self.width // 2, self.y - self.height),
-                (self.x, self.y - self.height // 2),
-                (self.x + self.width // 2, self.y),
-            ],
+            window_color,
+            (self.x + self.width // 4, self.y - 2),
+            self.width // 4,
         )
 
-        pygame.draw.polygon(
+        # Add specular highlight on cockpit (bright reflection)
+        highlight_offset = self.width // 6
+        highlight_color = (255, 255, 255)
+        pygame.draw.circle(
             screen,
-            SHIP_WING_COLOR,
-            [
-                (self.x + self.width // 2, self.y + self.height),
-                (self.x, self.y + self.height // 2),
-                (self.x + self.width // 2, self.y),
-            ],
+            highlight_color,
+            (self.x + self.width // 4 - highlight_offset // 2, self.y - highlight_offset),
+            self.width // 8,
         )
 
-        # Draw shield if active
+        # Add small detail lights (blinking navigation lights)
+        blink = pygame.time.get_ticks() % 1000 < 500
+        if blink:
+            # Top light
+            pygame.draw.circle(screen, (100, 255, 100),
+                             (self.x + self.width // 2, self.y - self.height // 3), 2)
+            # Bottom light
+            pygame.draw.circle(screen, (255, 100, 100),
+                             (self.x + self.width // 2, self.y + self.height // 3), 2)
+
+        # Weapon ports (where lasers fire from)
+        weapon_color = (200, 200, 100) if not is_damaged else (255, 150, 100)
+        pygame.draw.circle(screen, weapon_color, (self.x + self.width, self.y), 3)
+
+        # Draw hexagonal shield pattern if active
         if self.has_shield:
             shield_radius = max(self.width, self.height)
-            for i in range(3):
-                alpha = 100 - i * 30
-                s = pygame.Surface(
-                    (shield_radius * 2, shield_radius * 2), pygame.SRCALPHA
-                )
-                pygame.draw.circle(
-                    s,
-                    (*SHIELD_COLOR, alpha),
-                    (shield_radius, shield_radius),
-                    shield_radius - i * 5,
-                    2,
-                )
-                screen.blit(
-                    s,
-                    (
-                        int(self.x - shield_radius + self.width // 2),
-                        int(self.y - shield_radius),
-                    ),
-                )
+            shield_surface = pygame.Surface((shield_radius * 2, shield_radius * 2), pygame.SRCALPHA)
+            shield_center = (shield_radius, shield_radius)
+
+            # Draw hexagonal pattern with multiple layers
+            for layer in range(HEXAGON_LAYERS):
+                layer_radius = shield_radius - layer * (shield_radius // HEXAGON_LAYERS)
+                num_hexagons = max(1, 6 - layer * 2)  # Fewer hexagons in inner layers
+
+                for hex_idx in range(num_hexagons):
+                    # Position hexagons around the shield
+                    angle = (360 / num_hexagons) * hex_idx + pygame.time.get_ticks() / 20
+                    hex_x = shield_center[0] + layer_radius * 0.7 * math.cos(math.radians(angle))
+                    hex_y = shield_center[1] + layer_radius * 0.7 * math.sin(math.radians(angle))
+
+                    # Draw hexagon
+                    hex_points = []
+                    for i in range(6):
+                        point_angle = angle + i * 60
+                        px = hex_x + HEXAGON_RADIUS * math.cos(math.radians(point_angle))
+                        py = hex_y + HEXAGON_RADIUS * math.sin(math.radians(point_angle))
+                        hex_points.append((int(px), int(py)))
+
+                    # Pulsing alpha effect
+                    pulse = (math.sin(pygame.time.get_ticks() / 200.0) + 1) / 2
+                    alpha = int((60 + pulse * 40) * (1.0 - layer * 0.2))
+                    hex_color = (*SHIELD_COLOR, alpha)
+
+                    pygame.draw.polygon(shield_surface, hex_color, hex_points, 2)
+
+            screen.blit(
+                shield_surface,
+                (
+                    int(self.x - shield_radius + self.width // 2),
+                    int(self.y - shield_radius),
+                ),
+            )
 
     def get_center(self):
         """Return the center point of the ship."""
@@ -319,12 +527,68 @@ class Asteroid:
         self.angle = random.uniform(0, 360)
         self.rotation_speed = random.uniform(-2, 2)  # degrees per frame
 
+        # Motion blur tracking
+        self.previous_positions = []  # List of (x, y) positions for motion blur
+
+        # Rock type determines color scheme
+        rock_types = [
+            [(120, 120, 120), (140, 140, 140), (100, 100, 100)],  # Gray stone
+            [(140, 130, 110), (160, 150, 130), (120, 110, 90)],   # Brown rock
+            [(100, 110, 120), (120, 130, 140), (80, 90, 100)],    # Blue-gray
+            [(130, 115, 100), (150, 135, 120), (110, 95, 80)],    # Tan/beige
+        ]
+        self.colors = random.choice(rock_types)
+
+        # Generate irregular shape (polygon instead of perfect circle)
+        self.shape_points = []
+        num_points = random.randint(8, 12)
+        for i in range(num_points):
+            angle_deg = (360 / num_points) * i + random.uniform(-15, 15)
+            distance = self.radius * random.uniform(0.8, 1.1)  # Irregular distance
+            self.shape_points.append((angle_deg, distance))
+
+        # Generate random crack patterns for visual variety
+        self.cracks = []
+        num_cracks = random.randint(3, 6)
+        for _ in range(num_cracks):
+            # Random crack from center to edge
+            angle_offset = random.uniform(0, 360)
+            start_dist = random.uniform(0, self.radius * 0.4)
+            end_dist = random.uniform(self.radius * 0.6, self.radius * 0.95)
+            width = random.randint(1, 2)
+            self.cracks.append((angle_offset, start_dist, end_dist, width))
+
+        # Generate surface features (craters, ridges)
+        self.craters = []
+        num_craters = random.randint(3, 6)
+        for _ in range(num_craters):
+            crater_angle = random.uniform(0, 360)
+            crater_dist = random.uniform(0, self.radius * 0.6)
+            crater_size = random.uniform(self.radius * 0.1, self.radius * 0.3)
+            self.craters.append((crater_angle, crater_dist, crater_size))
+
+        # Some asteroids have mineral sparkles
+        self.has_minerals = random.random() < 0.3  # 30% chance
+        self.mineral_points = []
+        if self.has_minerals:
+            num_minerals = random.randint(3, 8)
+            for _ in range(num_minerals):
+                mineral_angle = random.uniform(0, 360)
+                mineral_dist = random.uniform(0, self.radius * 0.8)
+                mineral_brightness = random.randint(150, 255)
+                self.mineral_points.append((mineral_angle, mineral_dist, mineral_brightness))
+
     def update(self, time_scale=1.0):
         """Move asteroid with custom velocity.
 
         Args:
             time_scale: Multiplier for movement speed (default 1.0, 0.5 for time slow)
         """
+        # Store current position for motion blur
+        self.previous_positions.append((self.x, self.y))
+        if len(self.previous_positions) > MOTION_BLUR_POSITIONS:
+            self.previous_positions.pop(0)
+
         self.x += self.velocity_x * time_scale
         self.y += self.velocity_y * time_scale
         self.angle += self.rotation_speed * time_scale
@@ -341,61 +605,143 @@ class Asteroid:
         return self.x + rotated_x, self.y + rotated_y
 
     def draw(self, screen):
-        """Draw the asteroid with rotating details."""
-        # Main asteroid body
-        pygame.draw.circle(
-            screen, ASTEROID_COLORS[0], (int(self.x), int(self.y)), self.radius
-        )
+        """Draw the asteroid with irregular shape, realistic texturing, and details."""
+        # Draw motion blur ghost images
+        num_ghosts = len(self.previous_positions)
+        for i, (ghost_x, ghost_y) in enumerate(self.previous_positions):
+            # Calculate fade for ghost (older = more transparent)
+            alpha = int(40 * (i + 1) / (num_ghosts + 1))
+            ghost_surface = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA)
+            ghost_color = (*self.colors[0], alpha)
+            pygame.draw.circle(ghost_surface, ghost_color, (self.radius, self.radius), self.radius)
+            screen.blit(ghost_surface, (int(ghost_x - self.radius), int(ghost_y - self.radius)))
 
-        # Add rotated details to make it look realistic
-        detail1_x, detail1_y = self._rotate_point(-self.radius // 3, -self.radius // 4)
-        pygame.draw.circle(
-            screen,
-            ASTEROID_COLORS[1],
-            (int(detail1_x), int(detail1_y)),
-            self.radius // 2,
-        )
+        # Calculate rotated polygon points for irregular shape
+        rotated_points = []
+        for angle_deg, distance in self.shape_points:
+            total_angle = self.angle + angle_deg
+            px = self.x + distance * math.cos(math.radians(total_angle))
+            py = self.y + distance * math.sin(math.radians(total_angle))
+            rotated_points.append((int(px), int(py)))
 
-        detail2_x, detail2_y = self._rotate_point(self.radius // 2, self.radius // 3)
-        pygame.draw.circle(
-            screen,
-            ASTEROID_COLORS[2],
-            (int(detail2_x), int(detail2_y)),
-            self.radius // 3,
-        )
+        # Draw shadow/dark base layer first
+        shadow_color = tuple(int(c * 0.6) for c in self.colors[0])
+        pygame.draw.polygon(screen, shadow_color, rotated_points)
 
-        detail3_x, detail3_y = self._rotate_point(-self.radius // 2, self.radius // 2)
-        pygame.draw.circle(
-            screen,
-            ASTEROID_COLORS[1],
-            (int(detail3_x), int(detail3_y)),
-            self.radius // 4,
-        )
+        # Draw main irregular asteroid body with custom colors
+        pygame.draw.polygon(screen, self.colors[0], rotated_points)
 
-        # Add rotated craters
-        crater1_x, crater1_y = self._rotate_point(-self.radius // 4, 0)
-        pygame.draw.circle(
-            screen,
-            ASTEROID_COLORS[2],
-            (int(crater1_x), int(crater1_y)),
-            self.radius // 6,
-        )
+        # Add texture with varied-color patches (simulate rock surface variation)
+        num_patches = random.randint(2, 4) if self.radius > 30 else random.randint(1, 2)
+        for i in range(num_patches):
+            patch_angle = random.uniform(0, 360)
+            patch_dist = random.uniform(0, self.radius * 0.5)
+            patch_size = random.uniform(self.radius * 0.2, self.radius * 0.4)
+            patch_x, patch_y = self._rotate_point(
+                math.cos(math.radians(patch_angle)) * patch_dist,
+                math.sin(math.radians(patch_angle)) * patch_dist
+            )
+            # Use middle color for patches
+            pygame.draw.circle(
+                screen,
+                self.colors[1],
+                (int(patch_x), int(patch_y)),
+                int(patch_size)
+            )
 
-        crater2_x, crater2_y = self._rotate_point(self.radius // 3, -self.radius // 3)
-        pygame.draw.circle(
-            screen,
-            ASTEROID_COLORS[2],
-            (int(crater2_x), int(crater2_y)),
-            self.radius // 8,
-        )
+        # Draw craters with depth
+        for crater_angle, crater_dist, crater_size in self.craters:
+            crater_x, crater_y = self._rotate_point(
+                math.cos(math.radians(crater_angle)) * crater_dist,
+                math.sin(math.radians(crater_angle)) * crater_dist
+            )
+            # Dark crater base
+            pygame.draw.circle(
+                screen,
+                self.colors[2],
+                (int(crater_x), int(crater_y)),
+                int(crater_size)
+            )
+            # Lighter crater rim for depth
+            rim_offset_x = crater_size * 0.2
+            rim_offset_y = crater_size * 0.2
+            pygame.draw.circle(
+                screen,
+                self.colors[1],
+                (int(crater_x - rim_offset_x), int(crater_y - rim_offset_y)),
+                int(crater_size * 0.7)
+            )
 
-        crater3_x, crater3_y = self._rotate_point(-self.radius // 2, self.radius // 4)
-        pygame.draw.circle(
-            screen,
-            ASTEROID_COLORS[2],
-            (int(crater3_x), int(crater3_y)),
-            self.radius // 5,
-        )
+        # Draw cracks with varying width
+        for crack_angle, start_dist, end_dist, width in self.cracks:
+            start_x, start_y = self._rotate_point(
+                math.cos(math.radians(crack_angle)) * start_dist,
+                math.sin(math.radians(crack_angle)) * start_dist
+            )
+            end_x, end_y = self._rotate_point(
+                math.cos(math.radians(crack_angle)) * end_dist,
+                math.sin(math.radians(crack_angle)) * end_dist
+            )
+            # Draw crack as very dark line
+            crack_color = tuple(int(c * 0.4) for c in self.colors[0])
+            pygame.draw.line(
+                screen,
+                crack_color,
+                (int(start_x), int(start_y)),
+                (int(end_x), int(end_y)),
+                width
+            )
+
+        # Add rim lighting effect (as if lit from top-right)
+        rim_surface = pygame.Surface((self.radius * 2 + 10, self.radius * 2 + 10), pygame.SRCALPHA)
+
+        # Draw multiple arcs with decreasing alpha for soft glow
+        for i in range(3):
+            alpha = 70 - i * 20
+            thickness = 3 - i
+            # Calculate rim light color (brighter version of asteroid color)
+            rim_color = (
+                min(255, self.colors[0][0] + 120),
+                min(255, self.colors[0][1] + 120),
+                min(255, self.colors[0][2] + 120),
+                alpha
+            )
+
+            # Draw arc from 300 to 60 degrees (top-right quadrant)
+            pygame.draw.arc(
+                rim_surface,
+                rim_color,
+                (5 - i, 5 - i, self.radius * 2 + i * 2, self.radius * 2 + i * 2),
+                math.radians(300),
+                math.radians(60),
+                thickness
+            )
+
+        screen.blit(rim_surface, (int(self.x - self.radius - 5), int(self.y - self.radius - 5)))
+
+        # Draw mineral sparkles if present
+        if self.has_minerals:
+            sparkle_time = pygame.time.get_ticks()
+            for mineral_angle, mineral_dist, brightness in self.mineral_points:
+                # Make sparkles twinkle
+                twinkle = (math.sin(sparkle_time / 200 + mineral_angle) + 1) / 2
+                current_brightness = int(brightness * (0.6 + twinkle * 0.4))
+
+                mineral_x, mineral_y = self._rotate_point(
+                    math.cos(math.radians(mineral_angle)) * mineral_dist,
+                    math.sin(math.radians(mineral_angle)) * mineral_dist
+                )
+
+                # Draw sparkle with glow
+                sparkle_color = (current_brightness, current_brightness, min(255, current_brightness + 50))
+                for size in range(2, 0, -1):
+                    alpha = 255 - (2 - size) * 80
+                    sparkle_surf = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
+                    pygame.draw.circle(sparkle_surf, (*sparkle_color, alpha), (size, size), size)
+                    screen.blit(sparkle_surf, (int(mineral_x - size), int(mineral_y - size)))
+
+        # Add outline to irregular shape for definition
+        pygame.draw.polygon(screen, tuple(int(c * 0.7) for c in self.colors[0]), rotated_points, 1)
 
     def is_off_screen(self):
         """Check if asteroid is completely off-screen."""
@@ -571,6 +917,30 @@ class Boss:
         core_size = int(self.radius // 3 + 5 * math.sin(math.radians(self.glow_pulse)))
         pygame.draw.circle(screen, glow_color, (int(self.x), int(self.y)), core_size)
 
+        # Energy veins animation - pulsing lines from center to edges
+        vein_surface = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA)
+        vein_pulse = (math.sin(self.time * 0.1) + 1) / 2  # 0 to 1
+        for i in range(6):  # 6 veins
+            vein_angle = (self.time * 2 + i * 60) % 360
+            vein_length = self.radius * (0.5 + vein_pulse * 0.3)
+            start_x = self.radius
+            start_y = self.radius
+            end_x = self.radius + vein_length * math.cos(math.radians(vein_angle))
+            end_y = self.radius + vein_length * math.sin(math.radians(vein_angle))
+
+            vein_alpha = int(120 + vein_pulse * 80)
+            vein_color = (255, 100 + int(vein_pulse * 100), 100, vein_alpha)
+
+            pygame.draw.line(
+                vein_surface,
+                vein_color,
+                (int(start_x), int(start_y)),
+                (int(end_x), int(end_y)),
+                2
+            )
+
+        screen.blit(vein_surface, (int(self.x - self.radius), int(self.y - self.radius)))
+
         # Outer ring
         pygame.draw.circle(
             screen, BOSS_DETAIL_COLOR, (int(self.x), int(self.y)), self.radius, 4
@@ -608,14 +978,36 @@ class Laser:
         # Calculate velocity based on angle
         self.vx = self.speed * math.cos(math.radians(angle))
         self.vy = self.speed * math.sin(math.radians(angle))
+        # Trail segments for fading trail effect
+        self.trail_segments = []  # List of (x, y) positions
 
     def update(self):
         """Move laser."""
+        # Store current position for trail
+        self.trail_segments.append((self.x, self.y))
+        # Keep only last N segments
+        if len(self.trail_segments) > LASER_TRAIL_LENGTH:
+            self.trail_segments.pop(0)
+
         self.x += self.vx
         self.y += self.vy
 
     def draw(self, screen):
-        """Draw the laser with glow effect."""
+        """Draw the laser with glow effect and fading trail."""
+        # Draw fading trail segments
+        num_segments = len(self.trail_segments)
+        for i, (trail_x, trail_y) in enumerate(self.trail_segments):
+            # Calculate fade factor (older segments are more faded)
+            fade_factor = (i + 1) / (num_segments + 1)
+            trail_alpha = int(255 * fade_factor * 0.6)  # Max 60% opacity for trails
+
+            # Create semi-transparent surface for trail segment
+            trail_surface = pygame.Surface((self.width, self.height), pygame.SRCALPHA)
+            trail_color = (*LASER_COLOR, trail_alpha)
+            pygame.draw.rect(trail_surface, trail_color, (0, 0, self.width, self.height))
+            screen.blit(trail_surface, (int(trail_x), int(trail_y - 3)))
+
+        # Draw main laser body with glow effect
         pygame.draw.rect(
             screen, LASER_COLOR, (int(self.x), int(self.y - 3), self.width, self.height)
         )
@@ -667,7 +1059,24 @@ class PowerUp:
         self.x -= self.speed
 
     def draw(self, screen):
-        """Draw the power-up."""
+        """Draw the power-up with pulsing glow halo."""
+        # Calculate pulsing glow effect
+        pulse = (math.sin(pygame.time.get_ticks() / 200.0) + 1) / 2  # 0 to 1
+        glow_radius = self.size * (1.5 + pulse * 0.5)  # Pulsing between 1.5x and 2x
+
+        # Draw pulsing glow halos
+        glow_surface = pygame.Surface((int(glow_radius * 2 + 20), int(glow_radius * 2 + 20)), pygame.SRCALPHA)
+        glow_center = (int(glow_radius + 10), int(glow_radius + 10))
+
+        # Multiple layers for soft glow
+        for i in range(3):
+            alpha = int((60 - i * 20) * (0.5 + pulse * 0.5))
+            current_radius = glow_radius - i * 5
+            glow_color = (*self.color, alpha)
+            pygame.draw.circle(glow_surface, glow_color, glow_center, int(current_radius))
+
+        screen.blit(glow_surface, (int(self.x - glow_radius - 10), int(self.y - glow_radius - 10)))
+
         # Draw rotating square
         angle = pygame.time.get_ticks() / 10
         points = []
@@ -779,28 +1188,111 @@ class PowerUpManager:
 
 
 class Explosion:
-    """Explosion animation effect."""
+    """Enhanced explosion animation with smooth gradients and particles."""
 
     def __init__(self, x, y):
         self.x = x
         self.y = y
         self.size = EXPLOSION_INITIAL_SIZE
         self.max_size = EXPLOSION_MAX_SIZE
+        self.lifetime = 0
+        self.max_lifetime = EXPLOSION_MAX_SIZE - EXPLOSION_INITIAL_SIZE
+
+        # Create explosion particles for organic feel
+        self.particles = []
+        num_particles = random.randint(8, 12)
+        for _ in range(num_particles):
+            angle = random.uniform(0, 360)
+            speed = random.uniform(1.5, 3.5)
+            particle = {
+                'x': x,
+                'y': y,
+                'vx': speed * math.cos(math.radians(angle)),
+                'vy': speed * math.sin(math.radians(angle)),
+                'size': random.randint(2, 4),
+                'lifetime': random.randint(10, 20),
+                'max_lifetime': 20,
+                'color': random.choice(EXPLOSION_COLORS)
+            }
+            self.particles.append(particle)
 
     def update(self):
-        """Grow the explosion."""
-        self.size += 1
+        """Grow the explosion and update particles."""
+        self.size += 1.5  # Slightly faster growth
+        self.lifetime += 1
+
+        # Update particles
+        for particle in self.particles:
+            particle['x'] += particle['vx']
+            particle['y'] += particle['vy']
+            particle['lifetime'] -= 1
+            # Slow down particles over time
+            particle['vx'] *= 0.95
+            particle['vy'] *= 0.95
 
     def draw(self, screen):
-        """Draw explosion with alpha transparency."""
-        for i in range(5):
-            radius = int(self.size * (i + 1) / 5)
-            alpha = max(0, 255 - self.size * 10 - i * 30)
-            if radius > 0 and alpha > 0:
-                s = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
-                color_with_alpha = (*EXPLOSION_COLORS[i % 3], alpha)
-                pygame.draw.circle(s, color_with_alpha, (radius, radius), radius)
-                screen.blit(s, (int(self.x - radius), int(self.y - radius)))
+        """Draw explosion with smooth gradients and particles."""
+        progress = self.lifetime / self.max_lifetime
+
+        # Draw main explosion with smooth radial gradient
+        # Multiple layers with decreasing opacity for smooth gradient
+        num_layers = 8
+        for i in range(num_layers):
+            layer_progress = (num_layers - i) / num_layers
+            radius = int(self.size * layer_progress)
+
+            if radius > 0:
+                # Calculate color based on progress and layer
+                # Start bright white/yellow, transition to orange/red
+                if progress < 0.3:
+                    # Early explosion: bright white/yellow core
+                    color_idx = 1 if i < 3 else 0
+                elif progress < 0.6:
+                    # Mid explosion: orange
+                    color_idx = 0
+                else:
+                    # Late explosion: dark red
+                    color_idx = 2
+
+                base_color = EXPLOSION_COLORS[color_idx]
+
+                # Add brightness to inner layers
+                brightness_boost = int((1.0 - layer_progress) * 100) if i < 4 else 0
+                color = tuple(min(255, c + brightness_boost) for c in base_color)
+
+                # Calculate alpha with smooth falloff
+                alpha = int(255 * (1.0 - progress) * layer_progress * 0.8)
+
+                if alpha > 0:
+                    # Create surface for this layer
+                    surf_size = radius * 2 + 4
+                    s = pygame.Surface((surf_size, surf_size), pygame.SRCALPHA)
+
+                    # Draw filled circle with alpha
+                    color_with_alpha = (*color, alpha)
+                    pygame.draw.circle(s, color_with_alpha, (surf_size // 2, surf_size // 2), radius)
+
+                    # Blit to screen
+                    screen.blit(s, (int(self.x - surf_size // 2), int(self.y - surf_size // 2)))
+
+        # Draw bright flash at the center for first few frames
+        if progress < 0.2:
+            flash_alpha = int(255 * (1.0 - progress / 0.2))
+            flash_size = max(3, int(self.size * 0.3))
+            s = pygame.Surface((flash_size * 2, flash_size * 2), pygame.SRCALPHA)
+            pygame.draw.circle(s, (255, 255, 255, flash_alpha), (flash_size, flash_size), flash_size)
+            screen.blit(s, (int(self.x - flash_size), int(self.y - flash_size)))
+
+        # Draw explosion particles
+        for particle in self.particles:
+            if particle['lifetime'] > 0:
+                alpha = int(255 * (particle['lifetime'] / particle['max_lifetime']))
+                if alpha > 0:
+                    size = particle['size']
+                    s = pygame.Surface((size * 2, size * 2), pygame.SRCALPHA)
+                    color_with_alpha = (*particle['color'], alpha)
+                    pygame.draw.circle(s, color_with_alpha, (size, size), size)
+                    screen.blit(s, (int(particle['x'] - size), int(particle['y'] - size)))
 
     def is_finished(self):
         """Check if explosion animation is complete."""
@@ -816,7 +1308,11 @@ class Star:
         self.size = size
         self.speed = speed
         self.brightness = brightness
+        self.base_brightness = brightness
         self.color = color
+        # Twinkling effect
+        self.twinkle_offset = random.uniform(0, 360)
+        self.twinkle_speed = random.uniform(0.5, 2.0)
 
     def update(self, paused=False):
         """Move star to create parallax effect."""
@@ -826,16 +1322,28 @@ class Star:
                 self.x = WIDTH + 5
                 self.y = random.randint(0, HEIGHT)
 
+        # Update twinkling animation
+        self.twinkle_offset += self.twinkle_speed
+        if self.twinkle_offset >= 360:
+            self.twinkle_offset -= 360
+
+        # Calculate brightness variation for twinkling
+        twinkle_factor = (math.sin(math.radians(self.twinkle_offset)) + 1) / 2  # 0 to 1
+        brightness_variation = int(50 * twinkle_factor)
+        self.brightness = min(255, self.base_brightness + brightness_variation)
+
     def draw(self, screen):
-        """Draw the star."""
-        pygame.draw.circle(screen, self.color, (int(self.x), int(self.y)), self.size)
+        """Draw the star with twinkling effect."""
+        # Update color brightness for twinkling
+        twinkle_color = tuple(min(255, int(c * self.brightness / self.base_brightness)) for c in self.color)
+        pygame.draw.circle(screen, twinkle_color, (int(self.x), int(self.y)), self.size)
 
 
 class Particle:
-    """Visual particle effect."""
+    """Visual particle effect with multiple shapes."""
 
     def __init__(
-        self, x, y, color, velocity_x=0, velocity_y=0, size=None, lifetime=None
+        self, x, y, color, velocity_x=0, velocity_y=0, size=None, lifetime=None, shape="circle"
     ):
         self.x = x
         self.y = y
@@ -848,6 +1356,7 @@ class Particle:
         self.lifetime = lifetime if lifetime else PARTICLE_LIFETIME
         self.max_lifetime = self.lifetime
         self.alpha = 255
+        self.shape = shape  # "circle", "star", "square"
 
     def update(self):
         """Update particle position and fade."""
@@ -857,16 +1366,230 @@ class Particle:
         # Fade out over lifetime
         self.alpha = int(255 * (self.lifetime / self.max_lifetime))
 
+    def draw_star(self, surface, center, radius, color_with_alpha):
+        """Draw a star shape."""
+        points = []
+        for i in range(10):  # 5-pointed star = 10 points (5 outer, 5 inner)
+            angle = math.radians(i * 36 - 90)  # -90 to start pointing up
+            if i % 2 == 0:
+                # Outer point
+                r = radius
+            else:
+                # Inner point
+                r = radius * 0.4
+            px = center[0] + r * math.cos(angle)
+            py = center[1] + r * math.sin(angle)
+            points.append((px, py))
+        pygame.draw.polygon(surface, color_with_alpha, points)
+
+    def draw_square(self, surface, center, size, color_with_alpha):
+        """Draw a square shape."""
+        half_size = size
+        rect = pygame.Rect(
+            center[0] - half_size, center[1] - half_size, size * 2, size * 2
+        )
+        pygame.draw.rect(surface, color_with_alpha, rect)
+
     def draw(self, screen):
-        """Draw particle with transparency."""
+        """Draw particle with transparency based on shape."""
         if self.alpha > 0:
-            s = pygame.Surface((self.size * 2, self.size * 2), pygame.SRCALPHA)
+            s = pygame.Surface((self.size * 3, self.size * 3), pygame.SRCALPHA)
             color_with_alpha = (*self.color[:3], self.alpha)
-            pygame.draw.circle(s, color_with_alpha, (self.size, self.size), self.size)
-            screen.blit(s, (int(self.x - self.size), int(self.y - self.size)))
+            center = (self.size * 1.5, self.size * 1.5)
+
+            if self.shape == "star":
+                self.draw_star(s, center, self.size, color_with_alpha)
+            elif self.shape == "square":
+                self.draw_square(s, center, self.size, color_with_alpha)
+            else:  # circle
+                pygame.draw.circle(s, color_with_alpha, (int(center[0]), int(center[1])), self.size)
+
+            screen.blit(s, (int(self.x - self.size * 1.5), int(self.y - self.size * 1.5)))
 
     def is_dead(self):
         """Check if particle should be removed."""
+        return self.lifetime <= 0
+
+
+class ScorePopup:
+    """Floating score text that rises and fades out with smooth rendering."""
+
+    def __init__(self, x, y, score):
+        self.x = x
+        self.y = y
+        self.score = score
+        self.lifetime = SCORE_POPUP_LIFETIME
+        self.max_lifetime = SCORE_POPUP_LIFETIME
+        self.velocity_y = SCORE_POPUP_RISE_SPEED
+        self.scale = 0.5  # Start small for pop-in effect
+
+        # Choose font size based on score magnitude
+        self.font_size = 28 if score < 100 else 34 if score < 500 else 40
+        self.font = pygame.font.SysFont(None, self.font_size, bold=True)
+        self.text = f"+{score}"
+
+    def update(self):
+        """Update position, scale, and fade."""
+        self.y += self.velocity_y
+        self.lifetime -= 1
+
+        # Pop-in effect: quickly scale up at start
+        progress = 1.0 - (self.lifetime / self.max_lifetime)
+        if progress < 0.15:
+            # Quick pop-in to full size
+            self.scale = 0.5 + (progress / 0.15) * 0.5
+        else:
+            self.scale = 1.0
+
+    def draw(self, screen):
+        """Draw the score popup with outline and smooth fading (no background)."""
+        if self.lifetime > 0:
+            # Calculate alpha based on lifetime
+            alpha = int(255 * (self.lifetime / self.max_lifetime))
+
+            # Calculate current font size with scale
+            current_size = int(self.font_size * self.scale)
+            if current_size < 10:
+                return  # Don't render if too small
+
+            # Create font at current scale
+            scaled_font = pygame.font.SysFont(None, current_size, bold=True)
+
+            # Create a transparent surface to draw on
+            # First, render text to get size
+            temp_text = scaled_font.render(self.text, True, COMBO_COLOR)
+            text_width, text_height = temp_text.get_size()
+
+            # Create transparent surface large enough for text + outline
+            surf_width = text_width + 4
+            surf_height = text_height + 4
+            transparent_surface = pygame.Surface((surf_width, surf_height), pygame.SRCALPHA)
+            transparent_surface.fill((0, 0, 0, 0))  # Fully transparent background
+
+            # Render outline (dark shadow for contrast)
+            outline_color = (0, 0, 0, alpha)  # Include alpha in color
+            for dx, dy in [(-1, -1), (-1, 1), (1, -1), (1, 1), (0, -1), (-1, 0), (1, 0), (0, 1)]:
+                outline_surface = scaled_font.render(self.text, True, (0, 0, 0))
+                # Create a copy with alpha
+                outline_alpha_surf = pygame.Surface(outline_surface.get_size(), pygame.SRCALPHA)
+                outline_alpha_surf.fill((0, 0, 0, 0))
+                outline_alpha_surf.blit(outline_surface, (0, 0))
+                outline_alpha_surf.set_alpha(alpha)
+                transparent_surface.blit(outline_alpha_surf, (2 + dx, 2 + dy))
+
+            # Render main text with alpha
+            text_surface = scaled_font.render(self.text, True, COMBO_COLOR)
+            text_alpha_surf = pygame.Surface(text_surface.get_size(), pygame.SRCALPHA)
+            text_alpha_surf.fill((0, 0, 0, 0))
+            text_alpha_surf.blit(text_surface, (0, 0))
+            text_alpha_surf.set_alpha(alpha)
+            transparent_surface.blit(text_alpha_surf, (2, 2))
+
+            # Blit the final transparent surface to screen
+            final_x = int(self.x - surf_width // 2)
+            final_y = int(self.y - surf_height // 2)
+            screen.blit(transparent_surface, (final_x, final_y))
+
+    def is_dead(self):
+        """Check if popup should be removed."""
+        return self.lifetime <= 0
+
+
+class NebulaCloud:
+    """Procedural background nebula cloud for visual depth."""
+
+    def __init__(self):
+        self.x = random.randint(0, WIDTH)
+        self.y = random.randint(0, HEIGHT)
+        self.size = random.randint(NEBULA_MIN_SIZE, NEBULA_MAX_SIZE)
+        self.color = random.choice(NEBULA_COLORS)
+        self.drift_speed = random.uniform(0.05, 0.15)
+
+        # Create multiple layers for depth
+        self.layers = []
+        num_layers = random.randint(3, 5)
+        for i in range(num_layers):
+            layer_size = self.size * (1.0 - i * 0.15)
+            layer_offset_x = random.uniform(-self.size * 0.3, self.size * 0.3)
+            layer_offset_y = random.uniform(-self.size * 0.3, self.size * 0.3)
+            layer_alpha = int(self.color[3] * (0.8 - i * 0.15))
+            self.layers.append({
+                'size': layer_size,
+                'offset_x': layer_offset_x,
+                'offset_y': layer_offset_y,
+                'alpha': layer_alpha
+            })
+
+    def update(self):
+        """Move nebula slowly to create parallax effect."""
+        self.x -= self.drift_speed
+        if self.x < -self.size:
+            self.x = WIDTH + self.size
+            self.y = random.randint(0, HEIGHT)
+
+    def draw(self, screen):
+        """Draw the nebula cloud with multiple layers."""
+        for layer in self.layers:
+            s = pygame.Surface((int(layer['size'] * 2), int(layer['size'] * 2)), pygame.SRCALPHA)
+            color_with_alpha = (*self.color[:3], layer['alpha'])
+            pygame.draw.circle(
+                s,
+                color_with_alpha,
+                (int(layer['size']), int(layer['size'])),
+                int(layer['size'])
+            )
+            screen.blit(
+                s,
+                (
+                    int(self.x + layer['offset_x'] - layer['size']),
+                    int(self.y + layer['offset_y'] - layer['size'])
+                )
+            )
+
+
+class DistortionWave:
+    """Screen-wide ripple effect for dramatic events."""
+
+    def __init__(self, x, y, max_radius=DISTORTION_MAX_RADIUS):
+        self.x = x
+        self.y = y
+        self.radius = 0
+        self.max_radius = max_radius
+        self.lifetime = DISTORTION_LIFETIME
+        self.max_lifetime = DISTORTION_LIFETIME
+
+    def update(self):
+        """Expand the wave outward."""
+        self.lifetime -= 1
+        # Radius grows quickly at first, then slows
+        progress = 1.0 - (self.lifetime / self.max_lifetime)
+        self.radius = self.max_radius * (progress ** 0.7)
+
+    def draw(self, screen):
+        """Draw concentric rings with varying alpha."""
+        if self.lifetime > 0:
+            # Draw 3 rings at different offsets
+            for i in range(3):
+                ring_radius = int(self.radius - i * 20)
+                if ring_radius > 0:
+                    alpha = int(100 * (self.lifetime / self.max_lifetime) * (1.0 - i * 0.3))
+                    if alpha > 0:
+                        s = pygame.Surface((ring_radius * 2, ring_radius * 2), pygame.SRCALPHA)
+                        color_with_alpha = (150, 200, 255, alpha)
+                        pygame.draw.circle(
+                            s,
+                            color_with_alpha,
+                            (ring_radius, ring_radius),
+                            ring_radius,
+                            3
+                        )
+                        screen.blit(
+                            s,
+                            (int(self.x - ring_radius), int(self.y - ring_radius))
+                        )
+
+    def is_finished(self):
+        """Check if wave animation is complete."""
         return self.lifetime <= 0
 
 
@@ -936,6 +1659,22 @@ class Game:
         self.shake_offset_x = 0
         self.shake_offset_y = 0
 
+        # New visual systems
+        self.score_popups = []
+        self.nebula_clouds = []
+        self.distortion_waves = []
+
+        # UI animation tracking
+        self.previous_combo = 0
+        self.previous_lives = MAX_LIVES
+        self.scan_line_offset = 0
+
+        # Color theme based on score
+        self.theme_color = (100, 200, 255)  # Default blue
+
+        # Pre-render vignette surface for performance
+        self.vignette_surface = self._create_vignette()
+
         # Sound effects
         self.sounds_enabled = False
         self.sounds = {}
@@ -948,6 +1687,27 @@ class Game:
         self.apply_volume()
         self.create_stars()
         self.create_initial_asteroids()
+        self.create_nebula_clouds()
+
+    def _create_vignette(self):
+        """Create vignette surface for screen edges darkening effect."""
+        vignette = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        center_x, center_y = WIDTH // 2, HEIGHT // 2
+        max_distance = math.sqrt(center_x**2 + center_y**2)
+
+        # Create radial gradient from center to edges
+        for y in range(HEIGHT):
+            for x in range(WIDTH):
+                distance = math.sqrt((x - center_x)**2 + (y - center_y)**2)
+                alpha = int(120 * (distance / max_distance) ** 2)
+                vignette.set_at((x, y), (0, 0, 0, min(alpha, 180)))
+
+        return vignette
+
+    def create_nebula_clouds(self):
+        """Create background nebula clouds."""
+        for _ in range(NEBULA_COUNT):
+            self.nebula_clouds.append(NebulaCloud())
 
     def ensure_data_directory(self):
         """Ensure the data directory exists."""
@@ -1134,6 +1894,13 @@ class Game:
         self.combo_timer = 0
         self.powerup_manager = PowerUpManager(self.ship)  # Reset power-up manager
         self.screen_shake = 0
+        # Reset new visual systems
+        self.score_popups = []
+        self.distortion_waves = []
+        self.previous_combo = 0
+        self.previous_lives = MAX_LIVES
+        self.scan_line_offset = 0
+        self.theme_color = (100, 200, 255)
         self.create_initial_asteroids()
 
     def handle_events(self):
@@ -1347,6 +2114,10 @@ class Game:
     def activate_powerup(self, powerup_type):
         """Activate a power-up effect. Stacks duration if already active."""
         if powerup_type == "nuke":
+            # Create massive distortion wave from ship center
+            ship_center = self.ship.get_center()
+            self.distortion_waves.append(DistortionWave(ship_center[0], ship_center[1], max_radius=600))
+
             # Instant effect - destroy all asteroids with combo multiplier
             for asteroid in self.asteroids:
                 self.explosions.append(Explosion(asteroid.x, asteroid.y))
@@ -1493,6 +2264,8 @@ class Game:
                 patterns = ["sine", "circle", "figure8", "zigzag", "spiral"]
                 pattern = random.choice(patterns)
                 self.boss = Boss(pattern, self.difficulty_level)
+                # Create distortion wave at boss spawn
+                self.distortion_waves.append(DistortionWave(self.boss.x, self.boss.y))
 
         # Update ship
         keys = pygame.key.get_pressed()
@@ -1608,6 +2381,29 @@ class Game:
             self.shake_offset_x = 0
             self.shake_offset_y = 0
 
+        # Update new visual systems
+        for popup in self.score_popups:
+            popup.update()
+        self.score_popups = [p for p in self.score_popups if not p.is_dead()]
+
+        for cloud in self.nebula_clouds:
+            cloud.update()
+
+        for wave in self.distortion_waves:
+            wave.update()
+        self.distortion_waves = [w for w in self.distortion_waves if not w.is_finished()]
+
+        # Update scan line animation
+        self.scan_line_offset = (self.scan_line_offset + SCAN_LINE_SPEED) % HEIGHT
+
+        # Update theme color based on score
+        if self.score < THEME_BLUE_MAX:
+            self.theme_color = (100, 200, 255)  # Blue
+        elif self.score < THEME_PURPLE_MAX:
+            self.theme_color = (150, 100, 255)  # Purple
+        else:
+            self.theme_color = (255, 100, 150)  # Red/Pink
+
         # Check collisions
         self.check_collisions()
 
@@ -1650,6 +2446,8 @@ class Game:
                         if self.powerup_manager.is_active("double_damage"):
                             points *= 2
                         self.score += points
+                        # Create score popup
+                        self.score_popups.append(ScorePopup(asteroid.x, asteroid.y, int(points)))
                         # Break asteroid into smaller pieces if applicable
                         if asteroid.can_break():
                             children = asteroid.create_children(self.difficulty_level)
@@ -1831,6 +2629,10 @@ class Game:
         offset_screen = pygame.Surface((WIDTH, HEIGHT))
         offset_screen.fill(BACKGROUND)
 
+        # Draw nebula clouds in background
+        for cloud in self.nebula_clouds:
+            cloud.draw(offset_screen)
+
         # Draw stars
         for star in self.stars:
             star.draw(offset_screen)
@@ -1862,12 +2664,51 @@ class Game:
         # Draw ship
         self.ship.draw(offset_screen)
 
+        # Draw score popups
+        for popup in self.score_popups:
+            popup.draw(offset_screen)
+
+        # Draw distortion waves
+        for wave in self.distortion_waves:
+            wave.draw(offset_screen)
+
         # Draw UI
         self.draw_ui(offset_screen)
 
         # Draw pause screen
         if self.paused:
             self.draw_pause(offset_screen)
+
+        # Apply vignette effect
+        offset_screen.blit(self.vignette_surface, (0, 0))
+
+        # Apply chromatic aberration during screen shake
+        if self.screen_shake > 0:
+            # Create chromatic aberration by offsetting RGB channels
+            aberration_intensity = 3
+            # Create separate surfaces for each channel
+            red_surface = pygame.Surface((WIDTH, HEIGHT))
+            red_surface.fill((0, 0, 0))
+            red_surface.blit(offset_screen, (aberration_intensity, 0))
+
+            green_surface = pygame.Surface((WIDTH, HEIGHT))
+            green_surface.fill((0, 0, 0))
+            green_surface.blit(offset_screen, (0, 0))
+
+            blue_surface = pygame.Surface((WIDTH, HEIGHT))
+            blue_surface.fill((0, 0, 0))
+            blue_surface.blit(offset_screen, (-aberration_intensity, 0))
+
+            # Extract and combine channels (simplified chromatic effect)
+            # Just use additive blending for the effect
+            offset_screen.blit(red_surface, (0, 0), special_flags=pygame.BLEND_RGB_ADD)
+
+        # Add boss fight red tint overlay
+        if self.boss is not None:
+            tint_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+            tint_alpha = 30  # Subtle red tint
+            tint_surface.fill((255, 50, 50, tint_alpha))
+            offset_screen.blit(tint_surface, (0, 0))
 
         # Blit offset screen with shake
         self.screen.blit(offset_screen, (self.shake_offset_x, self.shake_offset_y))
@@ -2122,9 +2963,18 @@ class Game:
             )
 
     def draw_ui(self, screen):
-        """Draw score and UI elements."""
-        # Draw score
-        score_text = self.font.render(f"Score: {self.score}", True, TEXT_COLOR)
+        """Draw score and UI elements with enhancements."""
+        # Draw holographic scan lines
+        scan_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+        for i in range(0, HEIGHT, 4):
+            scan_y = (i + self.scan_line_offset) % HEIGHT
+            alpha = 20
+            pygame.draw.line(scan_surface, (self.theme_color[0], self.theme_color[1], self.theme_color[2], alpha),
+                           (0, scan_y), (WIDTH, scan_y), 1)
+        screen.blit(scan_surface, (0, 0))
+
+        # Draw score with theme color
+        score_text = self.font.render(f"Score: {self.score}", True, self.theme_color)
         screen.blit(score_text, (20, 20))
 
         # Draw high score (top score from leaderboard)
@@ -2141,8 +2991,13 @@ class Game:
             )
             screen.blit(player_text, (WIDTH - player_text.get_width() - 20, 50))
 
-        # Draw lives
-        lives_text = self.font.render(f"Lives: {self.ship.lives}", True, HEALTH_COLOR)
+        # Draw lives with pulse when low
+        lives_color = HEALTH_COLOR
+        if self.ship.lives == 1:
+            # Pulse health bar when low
+            pulse = (math.sin(pygame.time.get_ticks() / 100.0) + 1) / 2
+            lives_color = (255, int(100 + pulse * 155), int(100 + pulse * 155))
+        lives_text = self.font.render(f"Lives: {self.ship.lives}", True, lives_color)
         screen.blit(lives_text, (20, 60))
 
         # Draw difficulty multiplier
@@ -2151,66 +3006,115 @@ class Game:
         )
         screen.blit(difficulty_text, (20, 90))
 
-        # Draw combo
+        # Draw combo with scale pulse and screen edge glow
         if self.combo > 1:
             multiplier_index = min(self.combo - 1, len(COMBO_MULTIPLIERS) - 1)
             multiplier = COMBO_MULTIPLIERS[multiplier_index]
-            combo_text = self.font.render(f"COMBO x{multiplier}!", True, COMBO_COLOR)
+
+            # Scale pulse when combo increases
+            scale_factor = 1.0
+            if self.combo > self.previous_combo:
+                # Pulse effect on combo increase
+                scale_factor = 1.0 + 0.3 * math.exp(-COMBO_PULSE_SPEED * (self.combo - self.previous_combo))
+                self.previous_combo = self.combo
+
+            combo_font_size = int(36 * scale_factor)
+            combo_font = pygame.font.SysFont(None, combo_font_size)
+            combo_text = combo_font.render(f"COMBO x{multiplier}!", True, COMBO_COLOR)
             screen.blit(combo_text, (WIDTH // 2 - combo_text.get_width() // 2, 20))
 
-        # Draw active power-ups
+            # Screen edge glow for high combos
+            if self.combo >= 3:
+                edge_alpha = int(50 + 30 * (self.combo / len(COMBO_MULTIPLIERS)))
+                edge_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
+                # Top and bottom edges
+                for i in range(10):
+                    alpha = max(0, min(255, int(edge_alpha * (1.0 - i / 10.0))))
+                    pygame.draw.rect(edge_surface, (255, 255, 100, alpha), (0, i * 2, WIDTH, 2))
+                    pygame.draw.rect(edge_surface, (255, 255, 100, alpha), (0, HEIGHT - i * 2, WIDTH, 2))
+                screen.blit(edge_surface, (0, 0))
+
+        # Draw active power-ups with progress bars
         y_offset = 120
-        if self.powerup_manager.is_active("rapid_fire"):
-            rf_text = self.small_font.render(
-                f"Rapid Fire: {self.powerup_manager.get_timer('rapid_fire') // FPS}s",
-                True,
-                POWERUP_COLORS["rapid_fire"],
+        powerup_bar_width = 150
+        powerup_bar_height = 8
+
+        # Helper function to draw power-up with progress bar
+        def draw_powerup_with_bar(name, timer, max_timer, color, y_pos):
+            # Text
+            text = self.small_font.render(
+                f"{name}: {timer // FPS}s", True, color
             )
-            screen.blit(rf_text, (20, y_offset))
-            y_offset += 30
+            screen.blit(text, (20, y_pos))
+
+            # Progress bar background
+            bar_x = 20
+            bar_y = y_pos + 20
+            pygame.draw.rect(screen, (50, 50, 50), (bar_x, bar_y, powerup_bar_width, powerup_bar_height))
+
+            # Progress bar fill
+            progress = timer / max_timer
+            fill_width = int(powerup_bar_width * progress)
+            pygame.draw.rect(screen, color, (bar_x, bar_y, fill_width, powerup_bar_height))
+
+            # Progress bar border
+            pygame.draw.rect(screen, (200, 200, 200), (bar_x, bar_y, powerup_bar_width, powerup_bar_height), 1)
+
+            return y_pos + 35
+
+        if self.powerup_manager.is_active("rapid_fire"):
+            y_offset = draw_powerup_with_bar(
+                "Rapid Fire",
+                self.powerup_manager.get_timer('rapid_fire'),
+                POWERUP_DURATION * 2,
+                POWERUP_COLORS["rapid_fire"],
+                y_offset
+            )
 
         if self.powerup_manager.is_active("spread_shot"):
-            ss_text = self.small_font.render(
-                f"Spread Shot: {self.powerup_manager.get_timer('spread_shot') // FPS}s",
-                True,
+            y_offset = draw_powerup_with_bar(
+                "Spread Shot",
+                self.powerup_manager.get_timer('spread_shot'),
+                POWERUP_DURATION * 2,
                 POWERUP_COLORS["spread_shot"],
+                y_offset
             )
-            screen.blit(ss_text, (20, y_offset))
-            y_offset += 30
 
         if self.powerup_manager.is_active("shield"):
-            shield_text = self.small_font.render(
-                f"Shield: {self.powerup_manager.get_timer('shield') // FPS}s",
-                True,
+            y_offset = draw_powerup_with_bar(
+                "Shield",
+                self.powerup_manager.get_timer('shield'),
+                SHIELD_DURATION * 2,
                 POWERUP_COLORS["shield"],
+                y_offset
             )
-            screen.blit(shield_text, (20, y_offset))
-            y_offset += 30
 
         if self.powerup_manager.is_active("double_damage"):
-            dd_text = self.small_font.render(
-                f"Double Damage: {self.powerup_manager.get_timer('double_damage') // FPS}s",
-                True,
+            y_offset = draw_powerup_with_bar(
+                "Double Damage",
+                self.powerup_manager.get_timer('double_damage'),
+                POWERUP_DURATION * 2,
                 POWERUP_COLORS["double_damage"],
+                y_offset
             )
-            screen.blit(dd_text, (20, y_offset))
-            y_offset += 30
 
         if self.powerup_manager.is_active("magnet"):
-            mag_text = self.small_font.render(
-                f"Magnet: {self.powerup_manager.get_timer('magnet') // FPS}s", True, POWERUP_COLORS["magnet"]
+            y_offset = draw_powerup_with_bar(
+                "Magnet",
+                self.powerup_manager.get_timer('magnet'),
+                POWERUP_DURATION * 2,
+                POWERUP_COLORS["magnet"],
+                y_offset
             )
-            screen.blit(mag_text, (20, y_offset))
-            y_offset += 30
 
         if self.powerup_manager.is_active("time_slow"):
-            ts_text = self.small_font.render(
-                f"Time Slow: {self.powerup_manager.get_timer('time_slow') // FPS}s",
-                True,
+            y_offset = draw_powerup_with_bar(
+                "Time Slow",
+                self.powerup_manager.get_timer('time_slow'),
+                POWERUP_DURATION * 2,
                 POWERUP_COLORS["time_slow"],
+                y_offset
             )
-            screen.blit(ts_text, (20, y_offset))
-            y_offset += 30
 
         # Draw boss health bar
         if self.boss:

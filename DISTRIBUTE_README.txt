@@ -1,10 +1,19 @@
 ================================================================================
                         SPACE SHOOTER GAME
+                          VERSION 1.5.0
 ================================================================================
 
 An action-packed space shooter where you control a ship, blast asteroids,
 collect power-ups, and battle epic bosses while trying to achieve the
 highest score!
+
+*** NEW IN VERSION 1.5 - GRAPHICS OVERHAUL! ***
+- Stunning new ship graphics with animated thrusters and blinking lights
+- Realistic asteroids with unique irregular shapes and 4 different rock types
+- Smooth explosion effects with radial gradients and particle bursts
+- Beautiful procedural nebula clouds in the background
+- Enhanced UI with progress bars, combo effects, and dynamic themes
+- Every visual aspect has been dramatically improved!
 
 ================================================================================
 HOW TO PLAY

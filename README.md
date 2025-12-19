@@ -48,7 +48,66 @@ python src/main.py
 
 ## 🎉 What's New
 
-### Version 1.4.0 (Latest)
+### Version 1.5.0 (Latest) - Graphics Overhaul
+
+**🎨 Massive Visual Enhancement - Every aspect dramatically improved!**
+
+**Ship Graphics:**
+- ✨ **Subtle ship aura** - Glowing outline matches ship color
+- 🔥 **Animated engine thrusters** - Pulsing blue glow at rear (changes to orange when damaged)
+- 🔧 **Surface panel details** - Mechanical segments and structural definition
+- 💡 **Blinking navigation lights** - Green (top) and red (bottom) aircraft-style lights
+- 🪟 **Glass-effect cockpit** - Multi-layer rendering with bright specular highlights
+- ✈️ **Wing detail lines** - Structural definition for engineered look
+- 🎯 **Visible weapon port** - Shows where lasers fire from
+- 🌟 **Better gradient shading** - 4-layer gradients with metallic highlights
+
+**Asteroid Graphics:**
+- 🔷 **Irregular shapes** - Each asteroid is a unique 8-12 sided polygon (no more circles!)
+- 🌈 **4 rock types** - Gray stone, brown rock, blue-gray, tan/beige with custom color schemes
+- 🎭 **Surface texturing** - Color patches simulate realistic rock variation
+- 🕳️ **3D craters** - Deep craters with proper depth shading and rim lighting
+- ⚡ **Enhanced crack systems** - 3-6 visible cracks with variable width
+- ✨ **Mineral sparkles** - 30% of asteroids have twinkling mineral deposits
+- 💡 **Better lighting** - Rim lighting adapted to each rock type's colors
+- 🔷 **Defined outlines** - Clear shape definition
+
+**Explosion Effects:**
+- 💥 **Smooth radial gradients** - 8-layer explosion rendering (was 5)
+- 🎆 **8-12 explosion particles** - Organic burst patterns that slow over time
+- 🌟 **Color evolution** - White/yellow flash → orange → dark red progression
+- ⚡ **Bright center flash** - Realistic impact brightness in first frames
+- 🎨 **Dynamic coloring** - Changes from bright core to darker edges
+- 🔥 **50% faster growth rate** - More impactful visual feedback
+
+**Score Popups:**
+- 📈 **Pop-in animation** - Numbers start small and quickly grow to full size
+- 🖤 **Black outline** - 8-direction outline for perfect readability
+- 📏 **Size scaling** - Larger scores get bigger, more impactful numbers
+- ✨ **Transparent background** - No yellow rectangles, just clean text
+- 🎯 **Bold font rendering** - Crisp, clear score feedback
+
+**New Visual Systems:**
+- 🌌 **Procedural nebula clouds** - 5 multi-layered background clouds with parallax
+- 💫 **Distortion waves** - Expanding ripple effects on boss spawn and nuke
+- 🎭 **Enhanced particles** - Star, square, and circle shapes for variety
+- 🖼️ **Vignette overlay** - Darkened screen edges for cinematic focus
+- 👻 **Motion blur** - Ghost trails on fast-moving asteroids
+- 🌟 **Twinkling stars** - Background stars vary in brightness
+- 🔷 **Hexagonal shield** - Honeycomb pattern with rotating hexagons
+
+**UI Enhancements:**
+- 📺 **Holographic scan lines** - Animated lines across entire screen
+- ❤️ **Health bar pulse** - Red pulsing warning when critically low (1 life)
+- 📊 **Power-up progress bars** - Visual bars show remaining duration
+- 🎯 **Combo effects** - Scale pulse + screen edge glow that intensifies
+- 🎨 **Dynamic color themes** - Background shifts Blue→Purple→Red with score
+- 🔴 **Boss fight atmosphere** - Subtle red tint overlay during boss battles
+
+**Performance Impact:** All graphics enhancements maintain smooth 60 FPS!
+
+<details>
+<summary><b>Version 1.4.0 Changelog</b></summary>
 
 **Major Performance & Architecture Improvements:**
 - 🏗️ **PowerUpManager class** - Elegant new architecture replaces 60+ lines of repetitive code
@@ -67,6 +126,8 @@ python src/main.py
 - ⏱️ **Harder combos** - 2-second window (down from 3) rewards skilled play
 - 🔥 **10x combo multiplier** - New tier for sustained 6+ kill chains (was 8x max)
 - 📊 **Difficulty HUD display** - See your current speed multiplier on screen
+
+</details>
 
 <details>
 <summary><b>Version 1.3.0 Changelog</b></summary>
@@ -127,9 +188,15 @@ Collect rotating colored squares dropped by destroyed asteroids:
 **Stacking:** Collecting the same power-up extends duration up to 2x max (14/20 seconds)
 
 ### 🎨 Visual & Audio
-- **Particle systems** - Engine thrust, debris, laser trails, impacts, glows
+- **Advanced ship graphics** - Animated thrusters, panel details, navigation lights, glass cockpit
+- **Realistic asteroids** - Irregular polygon shapes, 4 rock types, 3D craters, mineral sparkles
+- **Smooth explosions** - 8-layer radial gradients with particle bursts
+- **Particle systems** - Multiple shapes (star, square, circle), engine thrust, debris, laser trails
+- **Screen effects** - Vignette overlay, motion blur, chromatic aberration, distortion waves
+- **UI polish** - Holographic scan lines, progress bars, combo effects, dynamic themes
+- **Procedural backgrounds** - Nebula clouds, twinkling stars, parallax scrolling
+- **Score popups** - Animated floating numbers with outlines
 - **Screen shake** - Dynamic camera shake on hits and explosions
-- **Parallax scrolling** - Multi-depth star field background
 - **Sound effects** - Lasers, explosions, hits, power-ups, shields, boss warnings
 - **Background music** - Looping soundtrack (when sound files present)
 - **Volume controls** - Adjustable volume (0-100%) and mute toggle in Options
@@ -264,7 +331,7 @@ space-shooter/
 │   ├── boss_warning.wav
 │   └── music.wav
 ├── src/
-│   └── main.py                  # Main game file (~2300 lines)
+│   └── main.py                  # Main game file (~3200 lines)
 ├── BUILD.md                     # Windows .exe build guide
 ├── build_windows.bat            # Windows build script
 ├── CLAUDE.md                    # AI assistant guidance
@@ -304,15 +371,18 @@ Find executable at `dist/SpaceShooter.exe`
 - Event handling → State updates → Rendering → Clock tick
 
 **Classes**
-- `Ship` - Player spaceship with movement and damage
-- `Asteroid` - Obstacles with breaking mechanics
-- `Boss` - Epic enemies with movement patterns
-- `Laser` - Player projectiles
-- `PowerUp` - Collectible enhancements
+- `Ship` - Player spaceship with enhanced graphics, movement, and damage
+- `Asteroid` - Irregular polygon obstacles with realistic texturing and breaking mechanics
+- `Boss` - Epic enemies with movement patterns and energy veins animation
+- `Laser` - Player projectiles with fading trails
+- `PowerUp` - Collectible enhancements with pulsing glow halos
 - `PowerUpManager` - Centralized power-up state (v1.4)
-- `Explosion` - Particle-based visual effects
-- `Star` - Parallax background elements
-- `Particle` - Generic particle system
+- `Explosion` - Advanced particle-based effects with radial gradients
+- `Star` - Twinkling parallax background elements
+- `Particle` - Multi-shape particle system (circle, star, square)
+- `ScorePopup` - Floating animated score notifications (v1.5)
+- `NebulaCloud` - Procedural background cloud layers (v1.5)
+- `DistortionWave` - Screen-wide ripple effects (v1.5)
 
 **Collision Detection**
 - Circular: Ship ↔ Asteroid, Ship ↔ Boss
@@ -380,8 +450,9 @@ Find executable at `dist/SpaceShooter.exe`
 
 ### Code Quality
 - Object-oriented design with clear separation of concerns
-- ~2300 lines of well-commented Python
+- ~3200 lines of well-commented Python
 - PowerUpManager architecture for maintainability (v1.4)
+- Advanced graphics systems with clean class architecture (v1.5)
 - Named constants (no magic numbers)
 - Exception-safe file I/O
 

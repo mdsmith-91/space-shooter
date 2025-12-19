@@ -54,19 +54,22 @@ python src/main.py
 - Rendering (draw stars, ship, asteroids, lasers, explosions, UI)
 
 **Key Components**:
-- **Ship**: Player-controlled spaceship with WASD/arrow key movement
-- **Asteroids**: Randomly generated obstacles that break into smaller pieces
+- **Ship**: Player-controlled spaceship with WASD/arrow key movement (v1.5: enhanced graphics with thrusters, lights, panel details)
+- **Asteroids**: Randomly generated obstacles that break into smaller pieces (v1.5: irregular polygons, 4 rock types, 3D craters, minerals)
   - Scoring: Large (25pts), Medium (15pts), Small (10pts)
-- **Lasers**: Projectiles fired by the player that destroy asteroids
+- **Lasers**: Projectiles fired by the player that destroy asteroids (v1.5: fading trail effects)
 - **Bosses**: Epic boss enemies that appear every 2500 points (v1.4) and stay on screen until defeated
   - Five movement patterns: sine wave, circular, figure-8, zigzag, and spiral
   - Health scales with difficulty level (15 HP at 1.0x → 45 HP at 3.0x)
   - Orbit around a center position instead of moving off-screen
 - **Power-ups**: 7 types (shield, rapid fire, spread shot, double damage, magnet, time slow, nuke)
   - Duration: Most last 7 seconds (420 frames), Shield lasts 10 seconds (600 frames)
-  - Stacking: Collecting duplicates extends duration up to 2x maximum
-- **Explosions**: Visual effects with particle systems
-- **Stars**: Parallax scrolling background for visual depth
+  - Stacking: Collecting duplicates extends duration up to 2x maximum (v1.5: pulsing glow halos)
+- **Explosions**: Visual effects with particle systems (v1.5: 8-layer radial gradients, particle bursts)
+- **Stars**: Parallax scrolling background for visual depth (v1.5: twinkling effect)
+- **Nebula Clouds** (v1.5): Procedural multi-layered background clouds
+- **Score Popups** (v1.5): Floating animated score numbers on asteroid destruction
+- **Distortion Waves** (v1.5): Screen-wide ripple effects for boss spawn and nuke
 - **Menu System**: Main menu with Play, Highscores, Options, and Exit
   - Pause menu with Resume, Options, and Main Menu
   - Options menu with volume slider and mute toggle
@@ -103,6 +106,95 @@ python src/main.py
   - File is read on startup and written when settings change
   - Settings apply to both music and all sound effects
 - The `data/` directory is auto-created on first run
+
+## Recent Changes (v1.5)
+
+**Massive Graphics Overhaul** - ~900 lines of new visual code added
+
+**New Visual Classes**:
+- **ScorePopup** (lines 1234-1296): Floating animated score numbers
+  - Pop-in animation, black outline for readability
+  - Size scales with score magnitude
+  - Transparent background rendering
+- **NebulaCloud** (lines 1299-1365): Procedural background nebula clouds
+  - Multi-layered cloud rendering
+  - Parallax scrolling effect
+  - Random colors and sizes
+- **DistortionWave** (lines 1368-1411): Screen-wide ripple effects
+  - Expanding concentric rings
+  - Triggered on boss spawn and nuke activation
+  - Fading alpha animation
+
+**Enhanced Ship Graphics** (lines 231-436):
+- Subtle ship aura/glow matching ship color
+- Animated engine thrusters with pulsing blue glow
+- Surface panel details for mechanical appearance
+- Blinking navigation lights (green top, red bottom)
+- Glass-effect cockpit with specular highlights
+- Wing detail lines for structural definition
+- Visible weapon port at nose
+- 4-layer gradient shading with metallic highlights
+
+**Enhanced Asteroid Graphics** (lines 503-744):
+- **Irregular polygon shapes**: 8-12 sided unique polygons (not circles!)
+- **4 rock types**: Gray stone, brown rock, blue-gray, tan/beige with custom color schemes
+- **Surface texture patches**: Color variation for realistic appearance
+- **3D craters**: 3-6 craters per asteroid with depth shading and rim lighting
+- **Enhanced cracks**: 3-6 cracks with variable width (1-2 pixels)
+- **Mineral sparkles**: 30% of asteroids have 3-8 twinkling mineral points
+- **Better lighting**: Rim lighting adapted to each rock type
+- **Defined outlines**: Polygon edge rendering
+
+**Enhanced Explosion Effects** (lines 1010-1119):
+- 8-layer radial gradients (was 5 simple circles)
+- 8-12 explosion particles with organic burst patterns
+- Color evolution: white/yellow flash → orange → dark red
+- Bright center flash for impact moment
+- Dynamic brightness based on explosion progress
+- 50% faster growth rate (1.5 vs 1.0)
+
+**Enhanced Particle System** (lines 867-936):
+- Multi-shape support: circle, star, square
+- `draw_star()` and `draw_square()` methods
+- Shape parameter in constructor
+
+**New Visual Effects**:
+- **Vignette overlay**: Pre-rendered radial gradient darkening screen edges
+- **Motion blur**: Ghost trails on asteroids (3 positions tracked)
+- **Twinkling stars**: Brightness variation using sine wave
+- **Hexagonal shield**: Honeycomb pattern with rotating hexagons (lines 437-469)
+- **Laser trails**: 5-segment fading trails (lines 790-837)
+
+**UI/HUD Enhancements**:
+- Holographic scan lines across screen
+- Health bar pulsing when critically low (1 life)
+- Power-up progress bars showing remaining duration
+- Combo scale pulse and screen edge glow
+- Dynamic color themes (blue → purple → red based on score)
+- Boss fight red tint overlay
+- Score popups integrated in collision detection
+
+**Graphics Constants Added** (lines 152-183):
+- `SCORE_POPUP_LIFETIME`, `SCORE_POPUP_RISE_SPEED`
+- `NEBULA_COUNT`, `NEBULA_MIN_SIZE`, `NEBULA_MAX_SIZE`, `NEBULA_COLORS`
+- `DISTORTION_MAX_RADIUS`, `DISTORTION_LIFETIME`
+- `COMBO_PULSE_SPEED`, `SCAN_LINE_SPEED`
+- `THEME_BLUE_MAX`, `THEME_PURPLE_MAX`, `THEME_RED_MIN`
+- `HEXAGON_RADIUS`, `HEXAGON_LAYERS`
+- `LASER_TRAIL_LENGTH`, `MOTION_BLUR_POSITIONS`
+
+**New Game Instance Variables**:
+- `score_popups[]`, `nebula_clouds[]`, `distortion_waves[]`
+- `vignette_surface`, `theme_color`, `scan_line_offset`
+- `previous_combo`, `previous_lives`
+
+**Performance Impact**:
+- All enhancements maintain 60 FPS
+- Pre-rendered vignette for efficiency
+- Optimized particle counts
+- Clean class-based architecture
+
+**Code Size**: ~3200 lines (was ~2300) - 40% increase for visual polish
 
 ## Recent Changes (v1.4)
 
