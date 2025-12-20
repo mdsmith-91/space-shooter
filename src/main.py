@@ -6,6 +6,7 @@ import math
 
 # Initialize pygame
 pygame.init()
+pygame.joystick.init()
 
 
 # =============================================================================
@@ -205,9 +206,32 @@ SCORE_MILESTONES = [0, 400, 1000, 2000, 3500, 5500, 8000, 11000, 15000, 20000,
 
 
 class Ship:
-    """Player-controlled spaceship."""
+    """Player-controlled spaceship with keyboard and controller support.
+
+    The ship can move in all directions, shoot lasers, and has a health/shield system.
+    Movement is handled via WASD/Arrow keys or controller analog stick/D-pad.
+
+    Attributes:
+        x: Horizontal position (pixels from left)
+        y: Vertical position (pixels from top)
+        width: Ship width in pixels
+        height: Ship height in pixels
+        speed: Movement speed in pixels per frame
+        lives: Remaining health points
+        invulnerable: Whether ship is temporarily invulnerable after damage
+        invulnerability_timer: Frames remaining of invulnerability
+        damage_flash_timer: Frames to flash red when damaged
+        has_shield: Whether shield power-up is active
+        shield_timer: Frames remaining of shield protection
+    """
 
     def __init__(self, x, y):
+        """Initialize the ship at the given position.
+
+        Args:
+            x: Starting horizontal position
+            y: Starting vertical position
+        """
         self.x = x
         self.y = y
         self.width = SHIP_WIDTH
@@ -220,8 +244,15 @@ class Ship:
         self.has_shield = False
         self.shield_timer = 0
 
-    def update(self, keys):
-        """Update ship position based on keyboard input."""
+    def update(self, keys, joystick=None, deadzone=0.2):
+        """Update ship position based on keyboard or controller input.
+
+        Args:
+            keys: Pygame key state array
+            joystick: Optional pygame joystick object
+            deadzone: Minimum analog stick value to register (0.0-1.0)
+        """
+        # Handle keyboard input
         if (keys[pygame.K_w] or keys[pygame.K_UP]) and self.y > 0:
             self.y -= self.speed
         if (keys[pygame.K_s] or keys[pygame.K_DOWN]) and self.y < HEIGHT - self.height:
@@ -230,6 +261,34 @@ class Ship:
             self.x -= self.speed
         if (keys[pygame.K_d] or keys[pygame.K_RIGHT]) and self.x < WIDTH - self.width:
             self.x += self.speed
+
+        # Handle controller input (analog stick or D-pad)
+        if joystick:
+            # Left analog stick (axis 0 = horizontal, axis 1 = vertical)
+            if joystick.get_numaxes() >= 2:
+                axis_x = joystick.get_axis(0)  # -1 (left) to 1 (right)
+                axis_y = joystick.get_axis(1)  # -1 (up) to 1 (down)
+
+                # Apply deadzone
+                if abs(axis_x) > deadzone:
+                    new_x = self.x + (axis_x * self.speed)
+                    self.x = max(0, min(WIDTH - self.width, new_x))
+
+                if abs(axis_y) > deadzone:
+                    new_y = self.y + (axis_y * self.speed)
+                    self.y = max(0, min(HEIGHT - self.height, new_y))
+
+            # D-pad support (hat 0)
+            if joystick.get_numhats() > 0:
+                hat = joystick.get_hat(0)
+                if hat[0] == -1 and self.x > 0:  # Left
+                    self.x -= self.speed
+                if hat[0] == 1 and self.x < WIDTH - self.width:  # Right
+                    self.x += self.speed
+                if hat[1] == 1 and self.y > 0:  # Up
+                    self.y -= self.speed
+                if hat[1] == -1 and self.y < HEIGHT - self.height:  # Down
+                    self.y += self.speed
 
         # Update timers
         if self.invulnerability_timer > 0:
@@ -498,11 +557,25 @@ class Ship:
             )
 
     def get_center(self):
-        """Return the center point of the ship."""
+        """Return the center point of the ship.
+
+        Returns:
+            Tuple of (x, y) coordinates representing the ship's center
+        """
         return (self.x + self.width // 2, self.y)
 
     def take_damage(self):
-        """Handle taking damage. Returns (game_over, shield_absorbed) tuple."""
+        """Handle taking damage with shield/invulnerability logic.
+
+        If ship has active shield, shield absorbs hit without losing life.
+        If invulnerable (recently damaged), damage is ignored.
+        Otherwise, ship loses 1 life and gains temporary invulnerability.
+
+        Returns:
+            Tuple of (game_over, shield_absorbed):
+                game_over: True if ship ran out of lives, False otherwise
+                shield_absorbed: True if shield absorbed the hit, False otherwise
+        """
         if self.invulnerable:
             return False, False
 
@@ -523,11 +596,46 @@ class Ship:
 
 
 class Asteroid:
-    """Asteroid obstacle."""
+    """Irregularly-shaped asteroid obstacle with realistic textures.
+
+    Asteroids feature procedurally-generated irregular polygons, craters, cracks,
+    and optional mineral sparkles. They rotate as they move and can break into
+    smaller pieces when destroyed.
+
+    Attributes:
+        x: Horizontal position
+        y: Vertical position
+        radius: Base radius (determines size category)
+        base_speed: Movement speed affected by difficulty multiplier
+        velocity_x: Horizontal velocity (usually negative, moving left)
+        velocity_y: Vertical velocity (usually 0 or small drift)
+        points: Score value when destroyed
+        size_category: "large", "medium", or "small" based on radius
+        angle: Current rotation angle in degrees
+        rotation_speed: Rotation rate in degrees per frame
+        colors: List of 3 colors for this asteroid's rock type
+        shape_points: Pre-calculated irregular polygon vertices
+        cracks: Pre-calculated crack patterns
+        craters: Pre-calculated crater positions and sizes
+        has_minerals: Whether this asteroid has sparkly minerals
+        mineral_points: Pre-calculated mineral sparkle positions
+        texture_patches: Pre-calculated texture variation patches
+        previous_positions: Recent positions for motion blur trail effect
+    """
 
     def __init__(
         self, x, y, radius, speed_multiplier=1.0, velocity_x=None, velocity_y=None
     ):
+        """Initialize an asteroid with procedurally-generated features.
+
+        Args:
+            x: Starting horizontal position
+            y: Starting vertical position
+            radius: Asteroid radius (20-50 pixels)
+            speed_multiplier: Difficulty-based speed modifier (default 1.0)
+            velocity_x: Custom horizontal velocity (default: -base_speed)
+            velocity_y: Custom vertical velocity (default: 0)
+        """
         self.x = x
         self.y = y
         self.radius = radius
@@ -775,11 +883,22 @@ class Asteroid:
         pygame.draw.polygon(screen, tuple(int(c * 0.7) for c in self.colors[0]), rotated_points, 1)
 
     def is_off_screen(self):
-        """Check if asteroid is completely off-screen."""
+        """Check if asteroid has moved completely off the left side of screen.
+
+        Returns:
+            True if asteroid's rightmost edge is past the left screen boundary
+        """
         return self.x < -self.radius
 
     def collides_with_ship(self, ship):
-        """Check collision with ship using circular collision detection."""
+        """Check collision with ship using circular collision detection.
+
+        Args:
+            ship: Ship object to check collision against
+
+        Returns:
+            True if asteroid and ship are overlapping, False otherwise
+        """
         ship_center = ship.get_center()
         distance_squared = (ship_center[0] - self.x) ** 2 + (
             ship_center[1] - self.y
@@ -788,11 +907,25 @@ class Asteroid:
         return distance_squared < collision_radius**2
 
     def can_break(self):
-        """Check if asteroid can break into smaller pieces."""
+        """Check if asteroid can break into smaller pieces.
+
+        Returns:
+            True if asteroid is large or medium, False if small
+        """
         return self.size_category in ["large", "medium"]
 
     def create_children(self, difficulty_multiplier=1.0):
-        """Create smaller asteroids when this one breaks."""
+        """Create smaller child asteroids when this one is destroyed.
+
+        Large asteroids spawn 3 medium children, medium spawn 2 small.
+        Children have spread velocities for visual variety.
+
+        Args:
+            difficulty_multiplier: Speed multiplier based on current difficulty
+
+        Returns:
+            List of 2-3 new Asteroid objects, or empty list if already small
+        """
         children = []
         if not self.can_break():
             return children
@@ -830,9 +963,35 @@ class Asteroid:
 
 
 class Boss:
-    """Boss enemy with health, special movement, and visual effects."""
+    """Epic boss enemy with health bar, movement patterns, and visual effects.
+
+    Bosses appear every 2500 points and orbit around a center position with
+    different movement patterns. They have health that scales with difficulty
+    and drop guaranteed power-ups when defeated.
+
+    Attributes:
+        center_x: Central X position for orbital patterns
+        center_y: Central Y position for orbital patterns
+        x: Current horizontal position
+        y: Current vertical position
+        radius: Boss collision radius
+        max_health: Maximum health points (scales with difficulty)
+        health: Current health points
+        speed: Movement speed
+        points: Score value when defeated (500)
+        pattern: Movement pattern ("sine", "circle", "figure8", "zigzag", "spiral")
+        time: Internal counter for pattern animation
+        angle: Rotation angle for visual effects
+        glow_pulse: Pulsing glow animation counter
+    """
 
     def __init__(self, pattern="sine", difficulty_level=1.0):
+        """Initialize a boss with the specified movement pattern and difficulty.
+
+        Args:
+            pattern: Movement pattern type (default "sine")
+            difficulty_level: Difficulty multiplier affecting health (1.0-3.0)
+        """
         # Center position for movement patterns
         self.center_x = WIDTH - 150  # Position on right side of screen
         self.center_y = HEIGHT // 2
@@ -1148,7 +1307,24 @@ class PowerUp:
 
 
 class PowerUpManager:
-    """Manages all active power-up states and timers."""
+    """Manages all active power-up states and timers.
+
+    Centralized power-up management system that replaced repetitive timer code.
+    Handles duration tracking, stacking (up to 2x max), and automatic deactivation.
+
+    Supported power-ups:
+        - rapid_fire: Faster laser cooldown
+        - spread_shot: Shoot 3 lasers at once
+        - double_damage: 2x score from asteroids
+        - magnet: Pull power-ups toward ship
+        - time_slow: Asteroids move at 50% speed
+
+    Shield is managed separately through the Ship object.
+
+    Attributes:
+        ship: Reference to Ship for shield management
+        active_powerups: Dict mapping power-up type to remaining frames
+    """
 
     def __init__(self, ship):
         """Initialize the power-up manager.
@@ -1629,9 +1805,24 @@ class DistortionWave:
 
 
 class Game:
-    """Main game controller."""
+    """Main game controller managing all game systems and state.
+
+    Coordinates game loop, event handling, rendering, collision detection,
+    scoring, difficulty progression, power-ups, bosses, and menu systems.
+
+    Supports both keyboard (WASD/Arrows) and controller (analog stick/D-pad) input.
+
+    Key Systems:
+        - Game states: menu, playing, paused, game_over, highscores, options
+        - Difficulty: Progressive speed increases based on score milestones
+        - Combo system: Up to 10x multiplier with 2-second timeout
+        - Power-ups: 7 types with stacking and duration management
+        - Bosses: Epic enemies every 2500 points with 5 movement patterns
+        - Performance: Text caching, font caching, time caching
+    """
 
     def __init__(self):
+        """Initialize the game with all systems, menus, and default settings."""
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         pygame.display.set_caption("Ship Obstacle Avoidance - Enhanced")
         self.clock = pygame.time.Clock()
@@ -1665,6 +1856,16 @@ class Game:
 
         # Performance: Cache current time per frame to avoid multiple get_ticks() calls
         self.current_time = pygame.time.get_ticks()
+
+        # Controller/Gamepad support
+        self.joystick = None
+        self.controller_deadzone = 0.2  # Ignore stick input below this threshold
+        if pygame.joystick.get_count() > 0:
+            self.joystick = pygame.joystick.Joystick(0)
+            self.joystick.init()
+            print(f"Controller detected: {self.joystick.get_name()}")
+        else:
+            print("No controller detected - keyboard only")
 
         # Menu state
         self.menu_options = ["Play", "Highscores", "Options", "Exit"]
@@ -1954,10 +2155,91 @@ class Game:
         self.create_initial_asteroids()
 
     def handle_events(self):
-        """Process pygame events."""
+        """Process pygame events (keyboard and controller)."""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 self.running = False
+
+            # Controller button press events
+            if event.type == pygame.JOYBUTTONDOWN:
+                # Button 0 (A/Cross) = Select/Shoot
+                if event.button == 0:
+                    if self.game_state == "menu":
+                        self.handle_menu_selection()
+                    elif self.game_state == "highscores":
+                        self.game_state = "menu"
+                    elif self.game_state == "options":
+                        if self.options_selected == 1:  # Mute toggle
+                            self.muted = not self.muted
+                            self.apply_volume()
+                            self.save_settings()
+                        else:
+                            if self.previous_state:
+                                self.game_state = self.previous_state
+                                self.previous_state = None
+                            else:
+                                self.game_state = "menu"
+                    elif self.game_state == "playing" and not self.paused:
+                        self.shoot_laser()
+                    elif self.paused:
+                        self.handle_pause_selection()
+
+                # Button 1 (B/Circle) = Back/Pause
+                elif event.button == 1:
+                    if self.game_state == "playing":
+                        self.paused = not self.paused
+                    elif self.game_state in ["highscores", "options"]:
+                        if self.previous_state:
+                            self.game_state = self.previous_state
+                            self.previous_state = None
+                        else:
+                            self.game_state = "menu"
+                    elif self.game_state == "game_over" and not self.name_input_active:
+                        self.reset()
+                        self.game_state = "menu"
+
+                # Button 9 (Start) = Pause/Resume
+                elif event.button == 9:
+                    if self.game_state == "playing":
+                        self.paused = not self.paused
+
+            # Controller D-pad events (hat motion)
+            if event.type == pygame.JOYHATMOTION and self.joystick:
+                hat_x, hat_y = event.value
+                # Menu navigation with D-pad
+                if self.game_state == "menu":
+                    if hat_y == 1:  # Up
+                        self.menu_selected = (self.menu_selected - 1) % len(self.menu_options)
+                    elif hat_y == -1:  # Down
+                        self.menu_selected = (self.menu_selected + 1) % len(self.menu_options)
+                elif self.game_state == "options":
+                    if hat_y == 1:  # Up
+                        self.options_selected = (self.options_selected - 1) % 2
+                    elif hat_y == -1:  # Down
+                        self.options_selected = (self.options_selected + 1) % 2
+                    elif hat_x == -1:  # Left
+                        if self.options_selected == 0:
+                            self.volume = max(0.0, self.volume - 0.1)
+                            self.apply_volume()
+                            self.save_settings()
+                        elif self.options_selected == 1:
+                            self.muted = not self.muted
+                            self.apply_volume()
+                            self.save_settings()
+                    elif hat_x == 1:  # Right
+                        if self.options_selected == 0:
+                            self.volume = min(1.0, self.volume + 0.1)
+                            self.apply_volume()
+                            self.save_settings()
+                        elif self.options_selected == 1:
+                            self.muted = not self.muted
+                            self.apply_volume()
+                            self.save_settings()
+                elif self.paused:
+                    if hat_y == 1:  # Up
+                        self.pause_selected = (self.pause_selected - 1) % len(self.pause_options)
+                    elif hat_y == -1:  # Down
+                        self.pause_selected = (self.pause_selected + 1) % len(self.pause_options)
 
             if event.type == pygame.KEYDOWN:
                 # Menu navigation
@@ -2338,9 +2620,9 @@ class Game:
                 # Create distortion wave at boss spawn
                 self.distortion_waves.append(DistortionWave(self.boss.x, self.boss.y))
 
-        # Update ship
+        # Update ship (keyboard and controller)
         keys = pygame.key.get_pressed()
-        self.ship.update(keys)
+        self.ship.update(keys, self.joystick, self.controller_deadzone)
 
         # Create engine particles when moving
         if (
@@ -2354,6 +2636,18 @@ class Game:
             or keys[pygame.K_RIGHT]
         ):
             self.create_engine_particles(self.ship.x, self.ship.y)
+
+        # Controller shooting (button held or trigger pressed)
+        if self.joystick and not self.paused and not self.game_over:
+            # Button 0 (A/Cross) or right trigger (axis 5) for shooting
+            shoot_button = self.joystick.get_button(0) if self.joystick.get_numbuttons() > 0 else False
+            shoot_trigger = False
+            if self.joystick.get_numaxes() >= 6:
+                trigger_value = self.joystick.get_axis(5)  # Right trigger (RT)
+                shoot_trigger = trigger_value > 0.5  # Trigger pressed halfway
+
+            if (shoot_button or shoot_trigger) and self.laser_cooldown == 0:
+                self.shoot_laser()
 
         # Update laser cooldown
         if self.laser_cooldown > 0:
