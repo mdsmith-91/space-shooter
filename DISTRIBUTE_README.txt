@@ -1,13 +1,27 @@
 ================================================================================
                         SPACE SHOOTER GAME
-                          VERSION 1.5.0
+                          VERSION 1.5.4
 ================================================================================
 
 An action-packed space shooter where you control a ship, blast asteroids,
 collect power-ups, and battle epic bosses while trying to achieve the
 highest score!
 
-*** NEW IN VERSION 1.5 - GRAPHICS OVERHAUL! ***
+*** VERSION 1.5.4 - DOCUMENTATION UPDATE ***
+- Complete documentation overhaul for all features
+- Enhanced instructions for keyboard and controller support
+- Detailed controls guide for all input methods
+- Updated version history and changelogs
+
+*** VERSION 1.5.3 - CONTROLLER SUPPORT! ***
+- Full gamepad/controller support - plug in and play!
+- Works with Xbox, PlayStation, and most USB/Bluetooth controllers
+- Analog stick or D-pad movement with deadzone tuning
+- Button mapping: A/Cross (shoot/select), B/Circle (back), START (pause)
+- Right trigger also shoots for easy gameplay
+- Seamless switching between keyboard and controller
+
+*** VERSION 1.5.0 - GRAPHICS OVERHAUL! ***
 - Stunning new ship graphics with animated thrusters and blinking lights
 - Realistic asteroids with unique irregular shapes and 4 different rock types
 - Smooth explosion effects with radial gradients and particle bursts
@@ -37,6 +51,8 @@ IN GAME:
 CONTROLS
 ================================================================================
 
+KEYBOARD CONTROLS:
+
 MAIN MENU & HIGHSCORES:
 W/S or UP/DOWN   - Navigate menu options
 ENTER            - Select highlighted option
@@ -60,6 +76,20 @@ Type your name (if you made top 10)
 ENTER            - Submit high score
 R                - Restart game
 ESC              - Return to main menu
+
+CONTROLLER/GAMEPAD CONTROLS:
+
+AUTO-DETECTED - Just plug in and play!
+Compatible with Xbox, PlayStation, and most USB/Bluetooth controllers.
+
+Left Stick       - Move ship / Navigate menus
+D-Pad            - Move ship / Navigate menus
+A (Xbox) / X (PS)- Shoot / Select menu option
+Right Trigger    - Shoot (alternative)
+B (Xbox) / O (PS)- Back / Pause
+START Button     - Pause / Resume game
+
+NOTE: You can switch between keyboard and controller anytime during gameplay!
 
 ================================================================================
 GAMEPLAY TIPS

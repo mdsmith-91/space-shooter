@@ -31,20 +31,19 @@ python src/main.py
 **Controls**:
 
 *Main Menu:*
-- W/S or ↑/↓: Navigate menu
-- ENTER: Select option
+- Keyboard: W/S or ↑/↓ to navigate, ENTER to select
+- Controller: D-pad or analog stick to navigate, A/✕ to select
 
 *Options Menu:*
-- W/S or ↑/↓: Navigate between Volume and Mute
-- A/D or ←/→: Adjust volume or toggle mute
-- ENTER: Toggle mute
-- ESC: Return to previous menu
+- Keyboard: W/S or ↑/↓ to navigate, A/D or ←/→ to adjust, ENTER to toggle mute
+- Controller: D-pad to navigate/adjust, A/✕ to toggle mute
+- ESC or B/○: Return to previous menu
 
 *In Game:*
-- WASD or Arrow keys: Move ship
-- SPACE: Shoot laser
-- ESC: Pause/Resume (shows pause menu)
-- R: Restart after game over
+- Keyboard: WASD or Arrow keys to move, SPACE to shoot
+- Controller: Analog stick or D-pad to move, A/✕ or RT to shoot
+- ESC or START: Pause/Resume (shows pause menu)
+- R: Restart after game over (keyboard only)
 
 ## Code Architecture
 
@@ -54,7 +53,7 @@ python src/main.py
 - Rendering (draw stars, ship, asteroids, lasers, explosions, UI)
 
 **Key Components**:
-- **Ship**: Player-controlled spaceship with WASD/arrow key movement (v1.5: enhanced graphics with thrusters, lights, panel details)
+- **Ship**: Player-controlled spaceship with keyboard/controller movement (v1.5.3: controller support; v1.5: enhanced graphics with thrusters, lights, panel details)
 - **Asteroids**: Randomly generated obstacles that break into smaller pieces (v1.5: irregular polygons, 4 rock types, 3D craters, minerals)
   - Scoring: Large (25pts), Medium (15pts), Small (10pts)
 - **Lasers**: Projectiles fired by the player that destroy asteroids (v1.5: fading trail effects)
@@ -91,6 +90,8 @@ python src/main.py
 - `muted`: Boolean flag for mute state
 - `difficulty_level`: Float (1.0-3.0) that increases at score milestones
 - `score`: Current score used to determine difficulty progression
+- `joystick`: Pygame joystick object if controller detected, None otherwise (v1.5.3)
+- `controller_deadzone`: Float (0.2) threshold for analog stick input (v1.5.3)
 - Power-up timers and states for all active power-ups (stack up to 2x duration)
 - Combo system with 2-second timeout (COMBO_TIMEOUT = 120 frames, reduced in v1.4 for skill-based play)
 - Combo multipliers: [1, 2, 3, 5, 8, 10] - up to 10x at combo 6+ (v1.4 added 10x tier)
@@ -107,7 +108,73 @@ python src/main.py
   - Settings apply to both music and all sound effects
 - The `data/` directory is auto-created on first run
 
-## Recent Changes (v1.5)
+## Recent Changes (v1.5.4)
+
+**Documentation Update** - Complete documentation overhaul
+
+**Updates**:
+- Updated README.md with comprehensive v1.5.3 controller support documentation
+- Updated DISTRIBUTE_README.txt for end users with controller instructions
+- Updated CLAUDE.md with detailed technical documentation of controller implementation
+- Added version history sections (v1.5.1, v1.5.2, v1.5.3) to all documentation
+- Enhanced control schemes documentation for both keyboard and controller inputs
+- Improved user-facing instructions across all documentation files
+
+**Files Updated**:
+- README.md: Added v1.5.3 controller support section, detailed controls tables
+- DISTRIBUTE_README.txt: Added controller controls section for end users
+- CLAUDE.md: Added v1.5.3 technical documentation with line numbers
+- All docs now consistently reflect version history and features
+
+## Recent Changes (v1.5.3)
+
+**Controller/Gamepad Support** - Full input device support added
+
+**New Features**:
+- **Controller detection**: Auto-detects and initializes joystick/gamepad on startup (lines 9, 1863-1868)
+- **Analog stick movement**: Ship.update() accepts joystick parameter with deadzone support (lines 247-285)
+- **D-pad navigation**: Hat motion events for menu navigation (lines 2207-2242)
+- **Button mapping**:
+  - Button 0 (A/Cross): Shoot and menu selection (lines 2165-2186)
+  - Button 1 (B/Circle): Back and pause actions (lines 2187-2200)
+  - Button 9 (START): Pause/resume game (lines 2201-2205)
+  - Right trigger (Axis 5): Alternative shoot control (lines 2645-2647)
+- **Seamless input**: Keyboard and controller can be used simultaneously
+- **Full menu support**: Controller navigation works in all menus and options
+
+**Technical Details**:
+- Joystick initialized via pygame.joystick.init() on game start
+- Ship class updated to handle joystick input with configurable deadzone (0.2 default)
+- Game class stores joystick instance and handles JOYBUTTONDOWN and JOYHATMOTION events
+- Controller name printed to console on detection for debugging
+
+**Code Changes**:
+- Added joystick parameter throughout Ship movement code
+- Implemented controller event handling in process_events()
+- Updated all menu navigation to support D-pad input
+- Added trigger-based shooting alongside button-based shooting
+
+## Recent Changes (v1.5.2)
+
+**Performance Optimizations and Bug Fixes**
+
+**Improvements**:
+- Performance optimizations for smoother gameplay at 60 FPS
+- General code cleanup and refinements
+- Bug fixes for edge cases discovered in testing
+- Minor stability improvements
+
+## Recent Changes (v1.5.1)
+
+**Code Quality Improvements**
+
+**Changes**:
+- Code cleanup and better organization
+- Additional performance improvements building on v1.5.0
+- Minor bug fixes and stability enhancements
+- Documentation refinements
+
+## Recent Changes (v1.5.0)
 
 **Massive Graphics Overhaul** - ~900 lines of new visual code added
 

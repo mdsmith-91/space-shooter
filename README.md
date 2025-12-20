@@ -42,13 +42,55 @@ pip install -r requirements.txt
 python src/main.py
 ```
 
-**That's it!** Use WASD/Arrows to move, SPACE to shoot, ESC to pause.
+**That's it!** Use WASD/Arrows to move, SPACE to shoot, ESC to pause. Controllers work automatically!
 
 ---
 
 ## 🎉 What's New
 
-### Version 1.5.0 (Latest) - Graphics Overhaul
+### Version 1.5.4 (Latest) - Documentation Update
+
+**📚 Complete Documentation Overhaul**
+- Updated all documentation to reflect v1.5.3 controller support features
+- Comprehensive controller controls documentation across all docs
+- Updated README.md, DISTRIBUTE_README.txt, CLAUDE.md, and BUILD.md
+- Added detailed version history with changelogs
+- Improved user-facing instructions for both keyboard and controller
+
+<details>
+<summary><b>Version 1.5.3 Changelog - Controller Support</b></summary>
+
+**🎮 Full Gamepad/Controller Support**
+- **Auto-detection** - Plug in any controller and it works instantly
+- **Movement** - Analog stick or D-pad navigation
+- **Button mapping** - A/Cross (shoot/select), B/Circle (back/pause), Start (pause)
+- **Trigger support** - Right trigger also shoots
+- **Deadzone tuning** - 20% deadzone prevents stick drift
+- **Menu navigation** - Full controller support in all menus
+- **Seamless switching** - Use keyboard and controller simultaneously
+
+<details>
+<summary><b>Version 1.5.2 Changelog</b></summary>
+
+**Performance & Polish:**
+- Performance optimizations for smoother gameplay
+- Bug fixes for edge cases
+- Code cleanup and refinements
+
+</details>
+
+<details>
+<summary><b>Version 1.5.1 Changelog</b></summary>
+
+**Code Quality:**
+- Code cleanup and organization
+- Additional performance improvements
+- Minor bug fixes
+
+</details>
+
+<details>
+<summary><b>Version 1.5.0 Changelog - Graphics Overhaul</b></summary>
 
 **🎨 Massive Visual Enhancement - Every aspect dramatically improved!**
 
@@ -106,6 +148,8 @@ python src/main.py
 
 **Performance Impact:** All graphics enhancements maintain smooth 60 FPS!
 
+</details>
+
 <details>
 <summary><b>Version 1.4.0 Changelog</b></summary>
 
@@ -157,7 +201,7 @@ python src/main.py
 ## ✨ Features
 
 ### 🎮 Core Gameplay
-- **Dual control schemes** - WASD or Arrow keys
+- **Dual control schemes** - Keyboard (WASD/Arrows) or Controller (analog stick/D-pad)
 - **Lives system** - 3 lives with invulnerability frames after damage
 - **Dynamic difficulty** - Scales from 0 to 100K points across 21 milestones
 - **Combo system** - Chain kills for up to **10x multiplier** (2-second window)
@@ -213,14 +257,16 @@ Collect rotating colored squares dropped by destroyed asteroids:
 
 ## 🎮 Controls
 
-### Main Menu / Highscores / Pause Menu
+### Keyboard Controls
+
+#### Main Menu / Highscores / Pause Menu
 | Key | Action |
 |-----|--------|
 | `W` `S` or `↑` `↓` | Navigate menu options |
 | `ENTER` | Select option |
 | `ESC` | Go back / Resume (in pause menu) |
 
-### Options Menu
+#### Options Menu
 | Key | Action |
 |-----|--------|
 | `W` `S` or `↑` `↓` | Navigate between Volume and Mute |
@@ -228,7 +274,7 @@ Collect rotating colored squares dropped by destroyed asteroids:
 | `ENTER` | Toggle mute |
 | `ESC` | Return to previous menu |
 
-### In-Game
+#### In-Game
 | Key | Action |
 |-----|--------|
 | `W` or `↑` | Move ship up |
@@ -238,6 +284,22 @@ Collect rotating colored squares dropped by destroyed asteroids:
 | `SPACE` | Shoot laser |
 | `ESC` | Open pause menu |
 | `R` | Restart (after game over) |
+
+### Controller/Gamepad Controls
+
+**Auto-detected!** Plug in any controller (Xbox, PlayStation, etc.) and it works instantly.
+
+#### In-Game & Menus
+| Button/Input | Action |
+|--------------|--------|
+| **Left Analog Stick** | Move ship / Navigate menus |
+| **D-Pad** | Move ship / Navigate menus |
+| **A** (Xbox) / **✕** (PlayStation) | Shoot / Select menu option |
+| **Right Trigger (RT)** | Shoot (alternative) |
+| **B** (Xbox) / **○** (PlayStation) | Back / Pause |
+| **START** | Pause / Resume game |
+
+**Note:** Controller and keyboard can be used simultaneously - switch between them anytime!
 
 ---
 
@@ -371,7 +433,7 @@ Find executable at `dist/SpaceShooter.exe`
 - Event handling → State updates → Rendering → Clock tick
 
 **Classes**
-- `Ship` - Player spaceship with enhanced graphics, movement, and damage
+- `Ship` - Player spaceship with enhanced graphics, keyboard/controller movement, and damage
 - `Asteroid` - Irregular polygon obstacles with realistic texturing and breaking mechanics
 - `Boss` - Epic enemies with movement patterns and energy veins animation
 - `Laser` - Player projectiles with fading trails
