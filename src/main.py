@@ -245,10 +245,15 @@ class Ship:
             if self.shield_timer == 0:
                 self.has_shield = False
 
-    def draw(self, screen):
-        """Draw the ship with enhanced graphics and details."""
+    def draw(self, screen, current_time):
+        """Draw the ship with enhanced graphics and details.
+
+        Args:
+            screen: Pygame surface to draw on
+            current_time: Current tick time (cached for performance)
+        """
         # Flickering effect when invulnerable
-        if self.invulnerable and pygame.time.get_ticks() % 200 < 100:
+        if self.invulnerable and current_time % 200 < 100:
             return
 
         # Choose ship color (red flash when damaged)
@@ -280,7 +285,7 @@ class Ship:
                         (self.x - 2, self.y + self.height // 2 - 3, thruster_width, thruster_height))
 
         # Engine glow (animated)
-        glow_pulse = (math.sin(pygame.time.get_ticks() / 100) + 1) / 2
+        glow_pulse = (math.sin(current_time / 100) + 1) / 2
         engine_glow = int(100 + glow_pulse * 100)
         engine_color = (100, 150, 255) if not is_damaged else (255, 150, 100)
 
@@ -439,7 +444,7 @@ class Ship:
         )
 
         # Add small detail lights (blinking navigation lights)
-        blink = pygame.time.get_ticks() % 1000 < 500
+        blink = current_time % 1000 < 500
         if blink:
             # Top light
             pygame.draw.circle(screen, (100, 255, 100),
@@ -465,7 +470,7 @@ class Ship:
 
                 for hex_idx in range(num_hexagons):
                     # Position hexagons around the shield
-                    angle = (360 / num_hexagons) * hex_idx + pygame.time.get_ticks() / 20
+                    angle = (360 / num_hexagons) * hex_idx + current_time / 20
                     hex_x = shield_center[0] + layer_radius * 0.7 * math.cos(math.radians(angle))
                     hex_y = shield_center[1] + layer_radius * 0.7 * math.sin(math.radians(angle))
 
@@ -478,7 +483,7 @@ class Ship:
                         hex_points.append((int(px), int(py)))
 
                     # Pulsing alpha effect
-                    pulse = (math.sin(pygame.time.get_ticks() / 200.0) + 1) / 2
+                    pulse = (math.sin(current_time / 200.0) + 1) / 2
                     alpha = int((60 + pulse * 40) * (1.0 - layer * 0.2))
                     hex_color = (*SHIELD_COLOR, alpha)
 
@@ -595,6 +600,15 @@ class Asteroid:
                 mineral_brightness = random.randint(150, 255)
                 self.mineral_points.append((mineral_angle, mineral_dist, mineral_brightness))
 
+        # Generate texture patches (pre-calculated to prevent flickering)
+        self.texture_patches = []
+        num_patches = random.randint(2, 4) if self.radius > 30 else random.randint(1, 2)
+        for _ in range(num_patches):
+            patch_angle = random.uniform(0, 360)
+            patch_dist = random.uniform(0, self.radius * 0.5)
+            patch_size = random.uniform(self.radius * 0.2, self.radius * 0.4)
+            self.texture_patches.append((patch_angle, patch_dist, patch_size))
+
     def update(self, time_scale=1.0):
         """Move asteroid with custom velocity.
 
@@ -621,8 +635,13 @@ class Asteroid:
         rotated_y = offset_x * math.sin(angle_rad) + offset_y * math.cos(angle_rad)
         return self.x + rotated_x, self.y + rotated_y
 
-    def draw(self, screen):
-        """Draw the asteroid with irregular shape, realistic texturing, and details."""
+    def draw(self, screen, current_time):
+        """Draw the asteroid with irregular shape, realistic texturing, and details.
+
+        Args:
+            screen: Pygame surface to draw on
+            current_time: Current tick time (cached for performance)
+        """
         # Draw motion blur ghost images
         num_ghosts = len(self.previous_positions)
         for i, (ghost_x, ghost_y) in enumerate(self.previous_positions):
@@ -649,11 +668,7 @@ class Asteroid:
         pygame.draw.polygon(screen, self.colors[0], rotated_points)
 
         # Add texture with varied-color patches (simulate rock surface variation)
-        num_patches = random.randint(2, 4) if self.radius > 30 else random.randint(1, 2)
-        for i in range(num_patches):
-            patch_angle = random.uniform(0, 360)
-            patch_dist = random.uniform(0, self.radius * 0.5)
-            patch_size = random.uniform(self.radius * 0.2, self.radius * 0.4)
+        for patch_angle, patch_dist, patch_size in self.texture_patches:
             patch_x, patch_y = self._rotate_point(
                 math.cos(math.radians(patch_angle)) * patch_dist,
                 math.sin(math.radians(patch_angle)) * patch_dist
@@ -738,10 +753,9 @@ class Asteroid:
 
         # Draw mineral sparkles if present
         if self.has_minerals:
-            sparkle_time = pygame.time.get_ticks()
             for mineral_angle, mineral_dist, brightness in self.mineral_points:
                 # Make sparkles twinkle
-                twinkle = (math.sin(sparkle_time / 200 + mineral_angle) + 1) / 2
+                twinkle = (math.sin(current_time / 200 + mineral_angle) + 1) / 2
                 current_brightness = int(brightness * (0.6 + twinkle * 0.4))
 
                 mineral_x, mineral_y = self._rotate_point(
@@ -1075,10 +1089,15 @@ class PowerUp:
         """Move power-up to the left."""
         self.x -= self.speed
 
-    def draw(self, screen):
-        """Draw the power-up with pulsing glow halo."""
+    def draw(self, screen, current_time):
+        """Draw the power-up with pulsing glow halo.
+
+        Args:
+            screen: Pygame surface to draw on
+            current_time: Current tick time (cached for performance)
+        """
         # Calculate pulsing glow effect
-        pulse = (math.sin(pygame.time.get_ticks() / 200.0) + 1) / 2  # 0 to 1
+        pulse = (math.sin(current_time / 200.0) + 1) / 2  # 0 to 1
         glow_radius = self.size * (1.5 + pulse * 0.5)  # Pulsing between 1.5x and 2x
 
         # Draw pulsing glow halos
@@ -1095,7 +1114,7 @@ class PowerUp:
         screen.blit(glow_surface, (int(self.x - glow_radius - 10), int(self.y - glow_radius - 10)))
 
         # Draw rotating square
-        angle = pygame.time.get_ticks() / 10
+        angle = current_time / 10
         points = []
         for i in range(4):
             rad = math.radians(angle + i * 90)
@@ -1625,6 +1644,11 @@ class Game:
         # Cached fonts for combo display (to avoid recreating every frame)
         self.combo_font_cache = {}
 
+        # Text rendering cache: stores (text, font, color) -> (surface, timestamp)
+        # Helps avoid re-rendering the same text every frame
+        self.text_cache = {}
+        self.text_cache_ttl = 300  # Cache for 5 seconds (300 frames at 60 FPS)
+
         # Game state
         self.running = True
         self.game_state = "menu"  # "menu", "playing", "game_over", "highscores", "options"
@@ -1638,6 +1662,9 @@ class Game:
         # Audio settings
         self.volume = 1.0  # 0.0 to 1.0 (0% to 100%)
         self.muted = False
+
+        # Performance: Cache current time per frame to avoid multiple get_ticks() calls
+        self.current_time = pygame.time.get_ticks()
 
         # Menu state
         self.menu_options = ["Play", "Highscores", "Options", "Exit"]
@@ -1708,17 +1735,22 @@ class Game:
         self.create_nebula_clouds()
 
     def _create_vignette(self):
-        """Create vignette surface for screen edges darkening effect."""
+        """Create vignette surface for screen edges darkening effect.
+
+        Optimized using concentric circles instead of per-pixel operations.
+        """
         vignette = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         center_x, center_y = WIDTH // 2, HEIGHT // 2
-        max_distance = math.sqrt(center_x**2 + center_y**2)
+        max_radius = int(math.sqrt(center_x**2 + center_y**2))
 
-        # Create radial gradient from center to edges
-        for y in range(HEIGHT):
-            for x in range(WIDTH):
-                distance = math.sqrt((x - center_x)**2 + (y - center_y)**2)
-                alpha = int(120 * (distance / max_distance) ** 2)
-                vignette.set_at((x, y), (0, 0, 0, min(alpha, 180)))
+        # Draw concentric circles from outside to inside for radial gradient
+        # More efficient than setting 480,000 pixels individually
+        num_layers = 100  # Smooth gradient with 100 layers
+        for i in range(num_layers, 0, -1):
+            radius = int(max_radius * (i / num_layers))
+            alpha = int(180 * ((i / num_layers) ** 2))  # Quadratic falloff like original
+            color = (0, 0, 0, min(alpha, 180))
+            pygame.draw.circle(vignette, color, (center_x, center_y), radius)
 
         return vignette
 
@@ -2125,6 +2157,32 @@ class Game:
         multiplier_index = min(self.combo - 1, len(COMBO_MULTIPLIERS) - 1)
         return COMBO_MULTIPLIERS[multiplier_index]
 
+    def render_text_cached(self, font, text, color):
+        """Render text with caching to avoid re-rendering same text every frame.
+
+        Args:
+            font: Pygame font object to use
+            text: String to render
+            color: RGB tuple for text color
+
+        Returns:
+            Pygame surface containing the rendered text
+        """
+        # Create cache key from font ID, text, and color
+        cache_key = (id(font), text, color)
+
+        # Check if we have a cached version
+        if cache_key in self.text_cache:
+            surface, timestamp = self.text_cache[cache_key]
+            # Check if cache is still valid
+            if self.current_time - timestamp < self.text_cache_ttl:
+                return surface
+
+        # Render and cache the text
+        surface = font.render(text, True, color)
+        self.text_cache[cache_key] = (surface, self.current_time)
+        return surface
+
     def activate_powerup(self, powerup_type):
         """Activate a power-up effect. Stacks duration if already active."""
         if powerup_type == "nuke":
@@ -2224,6 +2282,16 @@ class Game:
 
     def update(self):
         """Update all game objects."""
+        # Clean up text cache periodically (every 2 seconds)
+        if self.current_time % 120 == 0:  # Every 120 frames = 2 seconds at 60 FPS
+            # Remove expired entries from text cache
+            expired_keys = [
+                key for key, (_, timestamp) in self.text_cache.items()
+                if self.current_time - timestamp >= self.text_cache_ttl
+            ]
+            for key in expired_keys:
+                del self.text_cache[key]
+
         # Only update if in playing state
         if self.game_state != "playing":
             return
@@ -2636,7 +2704,7 @@ class Game:
 
         # Draw asteroids
         for asteroid in self.asteroids:
-            asteroid.draw(offset_screen)
+            asteroid.draw(offset_screen, self.current_time)
 
         # Draw boss
         if self.boss:
@@ -2644,14 +2712,14 @@ class Game:
 
         # Draw power-ups
         for powerup in self.powerups:
-            powerup.draw(offset_screen)
+            powerup.draw(offset_screen, self.current_time)
 
         # Draw lasers
         for laser in self.lasers:
             laser.draw(offset_screen)
 
         # Draw ship
-        self.ship.draw(offset_screen)
+        self.ship.draw(offset_screen, self.current_time)
 
         # Draw score popups
         for popup in self.score_popups:
@@ -2662,7 +2730,7 @@ class Game:
             wave.draw(offset_screen)
 
         # Draw UI
-        self.draw_ui(offset_screen)
+        self.draw_ui(offset_screen, self.current_time)
 
         # Draw pause screen
         if self.paused:
@@ -2921,7 +2989,7 @@ class Game:
             self.screen.blit(name_display, (WIDTH // 2 - 100 + 10, HEIGHT // 2 + 65))
 
             # Blinking cursor
-            if pygame.time.get_ticks() % 1000 < 500:
+            if self.current_time % 1000 < 500:
                 cursor_x = WIDTH // 2 - 100 + 10 + name_display.get_width()
                 pygame.draw.line(
                     self.screen,
@@ -2951,8 +3019,13 @@ class Game:
                 menu_text, (WIDTH // 2 - menu_text.get_width() // 2, HEIGHT // 2 + 60)
             )
 
-    def draw_ui(self, screen):
-        """Draw score and UI elements with enhancements."""
+    def draw_ui(self, screen, current_time):
+        """Draw score and UI elements with enhancements.
+
+        Args:
+            screen: Pygame surface to draw on
+            current_time: Current tick time (cached for performance)
+        """
         # Draw holographic scan lines
         scan_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
         for i in range(0, HEIGHT, 4):
@@ -2984,7 +3057,7 @@ class Game:
         lives_color = HEALTH_COLOR
         if self.ship.lives == 1:
             # Pulse health bar when low
-            pulse = (math.sin(pygame.time.get_ticks() / 100.0) + 1) / 2
+            pulse = (math.sin(current_time / 100.0) + 1) / 2
             lives_color = (255, int(100 + pulse * 155), int(100 + pulse * 155))
         lives_text = self.font.render(f"Lives: {self.ship.lives}", True, lives_color)
         screen.blit(lives_text, (20, 60))
@@ -3210,6 +3283,9 @@ class Game:
     def run(self):
         """Main game loop."""
         while self.running:
+            # Cache time for this frame to avoid multiple get_ticks() calls
+            self.current_time = pygame.time.get_ticks()
+
             self.handle_events()
             self.update()
             self.draw()
