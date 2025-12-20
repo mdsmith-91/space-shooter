@@ -69,6 +69,8 @@ python src/main.py
 - **Menu navigation** - Full controller support in all menus
 - **Seamless switching** - Use keyboard and controller simultaneously
 
+</details>
+
 <details>
 <summary><b>Version 1.5.2 Changelog</b></summary>
 
