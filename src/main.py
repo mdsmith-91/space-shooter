@@ -182,6 +182,23 @@ LASER_TRAIL_LENGTH = 5  # Number of trail segments
 # Asteroid motion blur settings
 MOTION_BLUR_POSITIONS = 3  # Number of ghost images
 
+# Power-up type lists
+POWERUP_TYPES_ALL = ["shield", "rapid_fire", "spread_shot", "double_damage", "magnet", "time_slow", "nuke"]
+POWERUP_TYPES_DROPABLE = ["shield", "rapid_fire", "spread_shot", "double_damage", "magnet", "time_slow"]  # Excludes nuke
+
+# Visual effect constants
+ENGINE_GLOW_LAYERS = 3
+SHIP_GRADIENT_LAYERS = 4
+RIM_LIGHT_LAYERS = 3
+EXPLOSION_GRADIENT_LAYERS = 8
+COMBO_EDGE_GLOW_STEPS = 10
+CHROMATIC_ABERRATION_INTENSITY = 3
+BOSS_TINT_ALPHA = 30
+
+# Score milestones for difficulty progression
+SCORE_MILESTONES = [0, 400, 1000, 2000, 3500, 5500, 8000, 11000, 15000, 20000,
+                    26000, 33000, 41000, 50000, 60000, 71000, 83000, 90000, 95000, 98000, 100000]
+
 # =============================================================================
 # CLASSES
 # =============================================================================
@@ -268,7 +285,7 @@ class Ship:
         engine_color = (100, 150, 255) if not is_damaged else (255, 150, 100)
 
         # Top engine glow
-        for i in range(3):
+        for i in range(ENGINE_GLOW_LAYERS):
             alpha = engine_glow - i * 30
             if alpha > 0:
                 glow_surf = pygame.Surface((thruster_width + i * 2, thruster_height + i * 2), pygame.SRCALPHA)
@@ -276,7 +293,7 @@ class Ship:
                 screen.blit(glow_surf, (self.x - 2 - i, self.y - self.height // 2 - 2 - i))
 
         # Bottom engine glow
-        for i in range(3):
+        for i in range(ENGINE_GLOW_LAYERS):
             alpha = engine_glow - i * 30
             if alpha > 0:
                 glow_surf = pygame.Surface((thruster_width + i * 2, thruster_height + i * 2), pygame.SRCALPHA)
@@ -284,7 +301,7 @@ class Ship:
                 screen.blit(glow_surf, (self.x - 2 - i, self.y + self.height // 2 - 3 - i))
 
         # Create gradient layers for main ship body with better shading
-        for i in range(4):
+        for i in range(SHIP_GRADIENT_LAYERS):
             # Calculate gradient color (darker to lighter from bottom to top)
             blend_factor = (i + 1) / 5.0
             gradient_color = tuple(int(c * (0.5 + blend_factor * 0.5)) for c in base_color)
@@ -696,7 +713,7 @@ class Asteroid:
         rim_surface = pygame.Surface((self.radius * 2 + 10, self.radius * 2 + 10), pygame.SRCALPHA)
 
         # Draw multiple arcs with decreasing alpha for soft glow
-        for i in range(3):
+        for i in range(RIM_LIGHT_LAYERS):
             alpha = 70 - i * 20
             thickness = 3 - i
             # Calculate rim light color (brighter version of asteroid color)
@@ -1236,9 +1253,8 @@ class Explosion:
 
         # Draw main explosion with smooth radial gradient
         # Multiple layers with decreasing opacity for smooth gradient
-        num_layers = 8
-        for i in range(num_layers):
-            layer_progress = (num_layers - i) / num_layers
+        for i in range(EXPLOSION_GRADIENT_LAYERS):
+            layer_progress = (EXPLOSION_GRADIENT_LAYERS - i) / EXPLOSION_GRADIENT_LAYERS
             radius = int(self.size * layer_progress)
 
             if radius > 0:
@@ -1606,6 +1622,8 @@ class Game:
         self.small_font = pygame.font.SysFont(None, 24)
         self.title_font = pygame.font.SysFont(None, 72)
         self.large_font = pygame.font.SysFont(None, 48)
+        # Cached fonts for combo display (to avoid recreating every frame)
+        self.combo_font_cache = {}
 
         # Game state
         self.running = True
@@ -2097,19 +2115,15 @@ class Game:
     def spawn_powerup(self, x, y):
         """Spawn a random power-up."""
         if random.random() < POWERUP_SPAWN_CHANCE:
-            powerup_types = [
-                "shield",
-                "rapid_fire",
-                "spread_shot",
-                "double_damage",
-                "magnet",
-                "time_slow",
-                "nuke",
-            ]
             # Weight the power-ups (nuke is rarer)
             weights = [1.5, 1.5, 1.5, 1.2, 1.2, 1.0, 0.3]
-            powerup_type = random.choices(powerup_types, weights=weights)[0]
+            powerup_type = random.choices(POWERUP_TYPES_ALL, weights=weights)[0]
             self.powerups.append(PowerUp(x, y, powerup_type))
+
+    def get_combo_multiplier(self):
+        """Calculate and return the current combo multiplier."""
+        multiplier_index = min(self.combo - 1, len(COMBO_MULTIPLIERS) - 1)
+        return COMBO_MULTIPLIERS[multiplier_index]
 
     def activate_powerup(self, powerup_type):
         """Activate a power-up effect. Stacks duration if already active."""
@@ -2125,8 +2139,7 @@ class Game:
                     asteroid.x, asteroid.y, count=int(asteroid.radius / 2)
                 )
                 # Apply combo multiplier to nuke points
-                multiplier_index = min(self.combo - 1, len(COMBO_MULTIPLIERS) - 1)
-                multiplier = COMBO_MULTIPLIERS[multiplier_index] if self.combo > 0 else 1
+                multiplier = self.get_combo_multiplier() if self.combo > 0 else 1
                 self.score += asteroid.points * multiplier
             self.asteroids = []
             # Damage boss heavily if present
@@ -2145,17 +2158,9 @@ class Game:
                         )
                     self.score += self.boss.points
                     # Drop guaranteed power-up
-                    powerup_types = [
-                        "shield",
-                        "rapid_fire",
-                        "spread_shot",
-                        "double_damage",
-                        "magnet",
-                        "time_slow",
-                    ]
-                    powerup_type_drop = random.choice(powerup_types)
+                    powerup_type = random.choice(POWERUP_TYPES_DROPABLE)
                     self.powerups.append(
-                        PowerUp(self.boss.x, self.boss.y, powerup_type_drop)
+                        PowerUp(self.boss.x, self.boss.y, powerup_type)
                     )
                     self.play_sound("explosion_big")
                     self.boss = None
@@ -2235,9 +2240,7 @@ class Game:
             return
 
         # Update difficulty based on score milestones
-        score_milestones = [0, 400, 1000, 2000, 3500, 5500, 8000, 11000, 15000, 20000,
-                           26000, 33000, 41000, 50000, 60000, 71000, 83000, 90000, 95000, 98000, 100000]
-        for i, milestone in enumerate(score_milestones):
+        for i, milestone in enumerate(SCORE_MILESTONES):
             if self.score >= milestone:
                 # Difficulty increases by 0.1 per milestone, caps at 3.0x at 100,000 points
                 target_difficulty = 1.0 + (i * 0.1)
@@ -2437,10 +2440,7 @@ class Game:
                         self.combo += 1
                         self.combo_timer = COMBO_TIMEOUT
                         # Calculate score with combo multiplier
-                        multiplier_index = min(
-                            self.combo - 1, len(COMBO_MULTIPLIERS) - 1
-                        )
-                        multiplier = COMBO_MULTIPLIERS[multiplier_index]
+                        multiplier = self.get_combo_multiplier()
                         points = asteroid.points * multiplier
                         # Double damage doubles the points
                         if self.powerup_manager.is_active("double_damage"):
@@ -2503,21 +2503,10 @@ class Game:
                                     )
                                 )
                             # Score points with combo multiplier
-                            multiplier_index = min(
-                                self.combo - 1, len(COMBO_MULTIPLIERS) - 1
-                            )
-                            multiplier = COMBO_MULTIPLIERS[multiplier_index]
+                            multiplier = self.get_combo_multiplier()
                             self.score += self.boss.points * multiplier
                             # Drop guaranteed power-up
-                            powerup_types = [
-                                "shield",
-                                "rapid_fire",
-                                "spread_shot",
-                                "double_damage",
-                                "magnet",
-                                "time_slow",
-                            ]
-                            powerup_type = random.choice(powerup_types)
+                            powerup_type = random.choice(POWERUP_TYPES_DROPABLE)
                             self.powerups.append(
                                 PowerUp(self.boss.x, self.boss.y, powerup_type)
                             )
@@ -2685,7 +2674,7 @@ class Game:
         # Apply chromatic aberration during screen shake
         if self.screen_shake > 0:
             # Create chromatic aberration by offsetting RGB channels
-            aberration_intensity = 3
+            aberration_intensity = CHROMATIC_ABERRATION_INTENSITY
             # Create separate surfaces for each channel
             red_surface = pygame.Surface((WIDTH, HEIGHT))
             red_surface.fill((0, 0, 0))
@@ -2706,7 +2695,7 @@ class Game:
         # Add boss fight red tint overlay
         if self.boss is not None:
             tint_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
-            tint_alpha = 30  # Subtle red tint
+            tint_alpha = BOSS_TINT_ALPHA  # Subtle red tint
             tint_surface.fill((255, 50, 50, tint_alpha))
             offset_screen.blit(tint_surface, (0, 0))
 
@@ -3008,8 +2997,7 @@ class Game:
 
         # Draw combo with scale pulse and screen edge glow
         if self.combo > 1:
-            multiplier_index = min(self.combo - 1, len(COMBO_MULTIPLIERS) - 1)
-            multiplier = COMBO_MULTIPLIERS[multiplier_index]
+            multiplier = self.get_combo_multiplier()
 
             # Scale pulse when combo increases
             scale_factor = 1.0
@@ -3019,7 +3007,10 @@ class Game:
                 self.previous_combo = self.combo
 
             combo_font_size = int(36 * scale_factor)
-            combo_font = pygame.font.SysFont(None, combo_font_size)
+            # Use cached font if available, otherwise create and cache it
+            if combo_font_size not in self.combo_font_cache:
+                self.combo_font_cache[combo_font_size] = pygame.font.SysFont(None, combo_font_size)
+            combo_font = self.combo_font_cache[combo_font_size]
             combo_text = combo_font.render(f"COMBO x{multiplier}!", True, COMBO_COLOR)
             screen.blit(combo_text, (WIDTH // 2 - combo_text.get_width() // 2, 20))
 
@@ -3028,7 +3019,7 @@ class Game:
                 edge_alpha = int(50 + 30 * (self.combo / len(COMBO_MULTIPLIERS)))
                 edge_surface = pygame.Surface((WIDTH, HEIGHT), pygame.SRCALPHA)
                 # Top and bottom edges
-                for i in range(10):
+                for i in range(COMBO_EDGE_GLOW_STEPS):
                     alpha = max(0, min(255, int(edge_alpha * (1.0 - i / 10.0))))
                     pygame.draw.rect(edge_surface, (255, 255, 100, alpha), (0, i * 2, WIDTH, 2))
                     pygame.draw.rect(edge_surface, (255, 255, 100, alpha), (0, HEIGHT - i * 2, WIDTH, 2))
